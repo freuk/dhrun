@@ -1,0 +1,3 @@
+src/*.hs
+src/*/*.hs
+src/*/*/*.hs

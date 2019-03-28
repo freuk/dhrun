@@ -1,0 +1,15 @@
+.argo_nodeos_config_exit_message
+dist
+_output
+result
+.shake
+*.log
+*/build
+*/new-build
+*/dist
+dist*
+*/new-dist
+*/result
+_output
+*/_output
+.direnv
