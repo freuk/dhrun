@@ -1,0 +1,94 @@
+name:                dhall-exec
+version:             0.0.1
+license:             MIT
+license-file:        LICENSE
+author:              Valentin Reis
+maintainer:          fre@freux.fr
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+category:            tools
+synopsis:            dhall async CI executor
+description:         reads process information from a dhall configuration and executes asynchronous processes.
+cabal-version:       2.0
+
+Source-Repository head
+  Type: git
+  Location: https://xgitlab.mcs.anl.gov/vreis/dhall-exec
+
+executable dhall-exec
+  hs-source-dirs: app
+  main-is: Main.hs
+  build-depends:
+    base,
+    protolude,
+    dhall-exec-lib,
+    optparse-applicative,
+    dhall
+  default-language: Haskell2010
+
+library dhall-exec-lib
+  hs-source-dirs:      src
+  exposed-modules: Dhallexec.Types
+  build-depends:
+    base,
+    protolude,
+    dhall
+  default-language:    Haskell2010
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wmissing-home-modules
+    -Widentities
+    -Wredundant-constraints
+    -Wcpp-undef
+    -fwarn-tabs
+    -fwarn-unused-imports
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fprint-potential-instances
+    -Wmissing-export-lists
+    -fwarn-unused-do-bind
+    -fwarn-wrong-do-bind
+    -fwarn-incomplete-patterns
+
+test-suite Tests
+  type: exitcode-stdio-1.0
+  main-is: Tests.hs
+  hs-source-dirs: tests
+  default-language: Haskell2010
+  build-depends:
+      base
+    , protolude
+    , dhall
+    , text
+    , unliftio
+    , tasty
+    , tasty-hunit
+    , tasty-hspec
+    , tasty-quickcheck
+    , quickcheck-text
+    , hspec
+    , dhall-exec-lib
+    , monad-mock
+    , Glob
+  ghc-options:
+    -threaded
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wmissing-home-modules
+    -Widentities
+    -Wredundant-constraints
+    -Wcpp-undef
+    -fwarn-tabs
+    -fwarn-unused-imports
+    -fwarn-unused-do-bind
+    -fwarn-wrong-do-bind
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fprint-potential-instances
+    -fwarn-incomplete-patterns

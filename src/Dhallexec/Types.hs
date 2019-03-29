@@ -1,4 +1,3 @@
-{-# language GeneralizedNewtypeDeriving #-}
 {-# language DeriveAnyClass #-}
 {-# language DerivingStrategies #-}
 {-# language DeriveGeneric #-}
@@ -12,46 +11,23 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Argo.Types
-  ( StdOutLog(..)
-  , StdErrLog(..)
-  , TestText(..)
-  , ProcessBehavior(..)
-  , TextBehavior(..)
-  , TextBehaviorStdout(..)
-  , TextBehaviorStderr(..)
-  , WorkingDirectory(..)
-  , Verbosity(..)
-  , AppName(..)
-  , AppArg(..)
-  , EnvVar(..)
-  , ContainerName(..)
-  , ShareDir(..)
-  , ManifestName(..)
-  , StackArgs(..)
-  , PreludeCommand(..)
-  , HwThreadCount(..)
-  , PowerCap(..)
-  , toOption
+module Dhallexec.Types
+  ( Verbosity(..)
+  , DhallExec(..)
   )
 where
 
-import           Data.Default
-import           Data.Text                     as T
-                                         hiding ( empty )
 import           Protolude
-import           Data.Yaml
 import           Dhall
 
-data StackArgs = StackArgs
-  { verbosity              :: Verbosity
-  , app                    :: AppName
-  } deriving (Show, Generic, ToJSON, FromJSON, Interpret)
+data Cmd = Cmd {
+    name :: Text
+  , args :: [Text]
+  } deriving (Show, Generic, Interpret)
 
-{-data OutputFiles = OutputFiles Text Text-}
+data DhallExec = DhallExec
+  { cmds :: [Cmd]
+  } deriving (Show, Generic, Interpret)
+
 data Verbosity = Normal | Verbose
-  deriving (Show, Read, Eq, Generic, FromJSON, ToJSON, Interpret)
-newtype AppName = AppName Text
-  deriving stock (Show, Read, Generic)
-  deriving newtype (IsString)
-  deriving anyclass (FromJSON, ToJSON, Interpret)
+  deriving (Show, Read, Eq, Generic, Interpret)

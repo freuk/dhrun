@@ -1,3 +1,4 @@
+{-# language OverloadedStrings #-}
 {-|
 Module      : shake.hs
 Description : dev tasks.
@@ -12,58 +13,60 @@ import           Development.Shake.FilePath
 import           Control.Monad
 import           System.Process.Typed
 
-refactCommands =
-  [ "OrganizeImports Dhallexec.Stack"
-  , "OrganizeImports Dhallexec.Args"
-  , "OrganizeImports Dhallexec.Utils"
-  , "OrganizeImports Dhallexec.Types"
-  ]
+data GhcidTargets = Test | Lib | App
+toProc Test = ghcidTarget
+  "new-repl test:Tests"
+  ["--test=Main.main", "--restart", "examples/singleProcess.dh"]
+toProc Lib = ghcidTarget "new-repl dhall-exec-lib" []
+toProc App = ghcidTarget "new-repl dhall-exec" []
 
-main = getArgs >>= deal
+ghcidTarget :: Text -> [Text] -> ProcessConfig () () ()
+ghcidTarget target extra =
+  proc "ghcid"
+    $   toS
+    <$> (  [ "--command"
+           , "cabal "
+           <> target
+           <> " "
+           <> " --ghc-options=-fno-code"
+           <> " --ghc-options=-fno-break-on-exception"
+           <> " --ghc-options=-fno-break-on-error"
+           <> " --ghc-options=-v1 --ghc-options=-ferror-spans"
+           , "--restart"
+           , "dhall-exec.cabal"
+           , "--restart"
+           , "default.nix"
+           , "--restart"
+           , "shell.nix"
+           ]
+        ++ extra
+        )
+
+main = do
+  runProcess_ "rm -f .ghc.*"
+  getArgs >>= deal
  where
-  deal args
-    | "ghcid" `elem` args = void $ startProcess $ proc
-      "ghcid"
-      [ "--command"
-      , "cabal new-repl "
-      <> " --ghc-options=-fno-code"
-      <> " --ghc-options=-fno-break-on-exception"
-      <> " --ghc-options=-fno-break-on-error"
-      <> " --ghc-options=-v1 --ghc-options=-ferror-spans"
-      , "--restart"
-      , "argonix.cabal"
-      , "--restart"
-      , "default.nix"
-      , "--restart"
-      , "shell.nix"
-      ]
-    | otherwise = runshake
+  deal args | "ghcid-test" `elem` args = void $ startProcess (toProc Test)
+            | "ghcid-lib" `elem` args  = void $ startProcess (toProc Lib)
+            | "ghcid-app" `elem` args  = void $ startProcess (toProc App)
+            | otherwise                = runshake
+    where libGhcid = ghcidTarget "new-repl dhall-exec-lib" []
+
 
 runshake = shakeArgs shakeOptions $ do
   phony "clean" $ removeFilesAfter "." ["README.md"]
 
-  phony "ht-refact" htRefactAll
-  phony "brittany"  brittany
-  phony "codequality" $ htRefactAll >> brittany
+  phony "brittany" brittany
 
   want ["README.md"]
 
   "README.md" %> \out -> do
     let template = ".README.md"
     need [template, "src/argotk.hs", "src/Dhallexec/Stack.hs"]
-    (Stdout panpipe) <- cmd "which panpipe"
-    cmd_ "pandoc --filter"
-         [take (length panpipe - 1) panpipe, template, "-o", out]
+    panpipe <- toS <$> readProcessStdout_ "which panpipe"
+    runProcess_ $ proc
+      "pandoc"
+      ["--filter", take (length panpipe - 1) panpipe, template, "-o", out]
  where
-  brittany =
-    cmd_ Shell $ "brittany --write-mode inplace" <> " src/*.hs src/Dhallexec/*hs"
-  htRefactAll = for_ refactCommands htRefact
-  htRefact x =
-    cmd_ Shell
-      $  "ht-refact "
-      <> "-w `which hfswatch` "
-      <> "--project-type cabal "
-      <> ". "
-      <> "-e \""
-      <> x
-      <> "\" || true"
+  brittany = runProcess_
+    $ shell "brittany --write-mode inplace src/*.hs src/Dhallexec/*hs"
