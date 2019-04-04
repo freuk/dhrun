@@ -1,7 +1,7 @@
 {
-  pkgs ? import <argopkgs> {dhall-exec-src=./.;},
+  pkgs ? import <argopkgs> {dhrun-src=./.;},
 }:
 rec {
-  dhall-exec = pkgs.dhall-exec;
-  hack = pkgs.argolib.getHackEnv pkgs pkgs.haskellPackages dhall-exec;
+  dhrun = pkgs.dhrun;
+  hack = pkgs.argolib.getHackEnv pkgs pkgs.haskellPackages dhrun;
 }

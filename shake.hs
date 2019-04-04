@@ -1,4 +1,5 @@
 {-# language OverloadedStrings #-}
+
 {-|
 Module      : shake.hs
 Description : dev tasks.
@@ -12,6 +13,7 @@ import           Protolude
 import           Development.Shake.FilePath
 import           Control.Monad
 import           System.Process.Typed
+import           System.Posix.Process
 
 data GhcidTargets = Test | Lib | App
 toProc Test = ghcidTarget
