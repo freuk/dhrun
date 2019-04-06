@@ -1,0 +1,5 @@
+    let Check = ./Check.dh
+
+in  let FileCheck = { filename : Text, filecheck : Check }
+
+in  FileCheck

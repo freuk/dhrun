@@ -16,43 +16,40 @@ import           System.Process.Typed
 import           System.Posix.Process
 
 data GhcidTargets = Test | Lib | App
-toProc Test = ghcidTarget
+toArgs Test = ghcidTarget
   "new-repl test:Tests"
-  ["--test=Main.main", "--restart", "examples/singleProcess.dh"]
-toProc Lib = ghcidTarget "new-repl dhall-exec-lib" []
-toProc App = ghcidTarget "new-repl dhall-exec" []
+  ["--test=Main.main", "--reload=./resources", "--reload=./examples", "--restart=./src"]
+toArgs Lib = ghcidTarget "new-repl dhrun-lib" []
+toArgs App = ghcidTarget "new-repl dhrun" []
 
-ghcidTarget :: Text -> [Text] -> ProcessConfig () () ()
+ghcidTarget :: Text -> [Text] -> [Text]
 ghcidTarget target extra =
-  proc "ghcid"
-    $   toS
-    <$> (  [ "--command"
-           , "cabal "
-           <> target
-           <> " "
-           <> " --ghc-options=-fno-code"
-           <> " --ghc-options=-fno-break-on-exception"
-           <> " --ghc-options=-fno-break-on-error"
-           <> " --ghc-options=-v1 --ghc-options=-ferror-spans"
-           , "--restart"
-           , "dhall-exec.cabal"
-           , "--restart"
-           , "default.nix"
-           , "--restart"
-           , "shell.nix"
-           ]
-        ++ extra
-        )
+  [ "--command"
+    , "cabal "
+    <> target
+    <> " "
+    <> " --ghc-options=-fno-code"
+    <> " --ghc-options=-fno-break-on-exception"
+    <> " --ghc-options=-fno-break-on-error"
+    <> " --ghc-options=-v1 --ghc-options=-ferror-spans"
+    , "--restart=dhrun.cabal"
+    , "--restart=default.nix"
+    , "--restart=shell.nix"
+    ]
+    ++ extra
 
 main = do
   runProcess_ "rm -f .ghc.*"
   getArgs >>= deal
  where
-  deal args | "ghcid-test" `elem` args = void $ startProcess (toProc Test)
-            | "ghcid-lib" `elem` args  = void $ startProcess (toProc Lib)
-            | "ghcid-app" `elem` args  = void $ startProcess (toProc App)
-            | otherwise                = runshake
-    where libGhcid = ghcidTarget "new-repl dhall-exec-lib" []
+  deal args
+    | "ghcid-test" `elem` args = void
+    $ executeFile "ghcid" True (toS <$> toArgs Test) Nothing
+    | "ghcid-lib" `elem` args = void
+    $ executeFile "ghcid" True (toS <$> toArgs Lib) Nothing
+    | "ghcid-app" `elem` args = void
+    $ executeFile "ghcid" True (toS <$> toArgs App) Nothing
+    | otherwise = runshake
 
 
 runshake = shakeArgs shakeOptions $ do

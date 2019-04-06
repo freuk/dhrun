@@ -1,0 +1,33 @@
+    let Verbosity = ./../resources/Verbosity.dh
+
+in  let EnvVar = ./../resources/EnvVar.dh
+
+in  let FileCheck = ./../resources/FileCheck.dh
+
+in  let Check = ./../resources/Check.dh
+
+in  let config =
+          { cmds =
+              [ { name =
+                    "echo"
+                , args =
+                    [ [ "hello", "world" ] ] : Optional (List Text)
+                , stdoutcheck =
+                    [] : Optional Check
+                , stderrcheck =
+                    [] : Optional Check
+                , postchecks =
+                    [] : Optional (List FileCheck)
+                , vars =
+                    [] : Optional (List EnvVar)
+                }
+              ]
+          , verbosity =
+              [] : Optional Verbosity
+          , pre =
+              [] : Optional (List Text)
+          , post =
+              [] : Optional (List Text)
+          }
+
+in  config

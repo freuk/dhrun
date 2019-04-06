@@ -1,0 +1,21 @@
+pre:
+  - echo "preparing!"
+post:
+  - echo "finishing!"
+verbosity: Verbose
+cmds:
+  - args:
+      - hello
+    postchecks:
+      - filecheck:
+          wants: null
+          avoids:
+            - Traceback
+            - Error
+        filename: hello
+    stderrcheck: null
+    stdoutcheck: null
+    name: touch
+    vars:
+      - value: BAR
+        varname: FOO

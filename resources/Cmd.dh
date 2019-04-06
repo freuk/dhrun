@@ -1,0 +1,21 @@
+    let Verbosity = ./Verbosity.dh
+
+in  let EnvVar = ./EnvVar.dh
+
+in  let FileCheck = ./FileCheck.dh
+
+in  let Check = ./Check.dh
+
+in  { name :
+        Text
+    , args :
+        Optional (List Text)
+    , stdoutcheck :
+        Optional Check
+    , stderrcheck :
+        Optional Check
+    , postchecks :
+        Optional (List FileCheck)
+    , vars :
+        Optional (List EnvVar)
+    }

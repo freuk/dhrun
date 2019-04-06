@@ -1,0 +1,2 @@
+let Verbosity = < Normal : {} | Verbose : {} >
+in Verbosity

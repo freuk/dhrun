@@ -1,0 +1,6 @@
+---
+cmds:
+  - name: echo
+    args:
+      - hello
+      - world

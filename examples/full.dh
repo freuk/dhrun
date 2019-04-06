@@ -1,0 +1,50 @@
+    let resources = ./../resources/package.dh
+
+in  let Verbosity = ./../resources/Verbosity.dh
+
+in  let EnvVar = ./../resources/EnvVar.dh
+
+in  let FileCheck = ./../resources/FileCheck.dh
+
+in  let Check = ./../resources/Check.dh
+
+in  let Cmd = ./../resources/Cmd.dh
+
+in  let config =
+          { cmds =
+              [   { name =
+                      "touch"
+                  , args =
+                      [ [ "hello" ] ] : Optional (List Text)
+                  , stdoutcheck =
+                      [] : Optional Check
+                  , stderrcheck =
+                      [] : Optional Check
+                  , postchecks =
+                      [ [ { filename =
+                              "hello"
+                          , filecheck =
+                              { wants =
+                                  [] : Optional (List Text)
+                              , avoids =
+                                  [ [ "Traceback", "Error" ] ] : Optional
+                                                                 (List Text)
+                              }
+                          }
+                        ]
+                      ] : Optional (List FileCheck)
+                  , vars =
+                      [ [ { varname = "FOO" : Text, value = "BAR" : Text } ]
+                      ] : Optional (List EnvVar)
+                  }
+                : Cmd
+              ]
+          , verbosity =
+              [ resources.Verbose ] : Optional Verbosity
+          , pre =
+              [ [ "echo \"preparing!\"" ] ] : Optional (List Text)
+          , post =
+              [ [ "echo \"finishing!\"" ] ] : Optional (List Text)
+          }
+
+in  config

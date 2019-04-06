@@ -15,7 +15,7 @@ module Main
 where
 
 import           Protolude
-import           Dhallexec.Types
+import           Dhrun.Types
 import           Options.Applicative           as OA
 import           Dhall
 
