@@ -41,8 +41,8 @@ parser =
 
 work :: Text -> Verbosity -> IO ()
 work fn v = do
-  loaded <- (if v == Verbose then detailed else identity) $ input ft fn
+  loaded <- (if v == Verbose then detailed else identity) $ inputDhallExec fn
   print loaded
  where
-  ft :: Dhall.Type DhallExec
+  ft :: Dhall.Type DhallExecParse
   ft = Dhall.auto

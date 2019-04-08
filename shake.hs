@@ -18,7 +18,11 @@ import           System.Posix.Process
 data GhcidTargets = Test | Lib | App
 toArgs Test = ghcidTarget
   "new-repl test:Tests"
-  ["--test=Main.main", "--reload=./resources", "--reload=./examples", "--restart=./src"]
+  [ "--test=Main.main"
+  , "--reload=./resources"
+  , "--reload=./examples"
+  , "--restart=./src"
+  ]
 toArgs Lib = ghcidTarget "new-repl dhrun-lib" []
 toArgs App = ghcidTarget "new-repl dhrun" []
 
@@ -51,21 +55,20 @@ main = do
     $ executeFile "ghcid" True (toS <$> toArgs App) Nothing
     | otherwise = runshake
 
-
 runshake = shakeArgs shakeOptions $ do
   phony "clean" $ removeFilesAfter "." ["README.md"]
 
   phony "brittany" brittany
 
-  want ["README.md"]
+  {-want ["README.md"]-}
 
-  "README.md" %> \out -> do
-    let template = ".README.md"
-    need [template, "src/argotk.hs", "src/Dhallexec/Stack.hs"]
-    panpipe <- toS <$> readProcessStdout_ "which panpipe"
-    runProcess_ $ proc
-      "pandoc"
-      ["--filter", take (length panpipe - 1) panpipe, template, "-o", out]
+  {-"README.md" %> \out -> do-}
+    {-let template = ".README.md"-}
+    {-need [template, "src/Dhrun.hs", "src/Dhrun/Types.hs", "src/Dhrun/Run.hs"]-}
+    {-panpipe <- toS <$> readProcessStdout_ "which panpipe"-}
+    {-runProcess_ $ proc-}
+      {-"pandoc"-}
+      {-["--filter", take (length panpipe - 1) panpipe, template, "-o", out]-}
  where
   brittany = runProcess_
     $ shell "brittany --write-mode inplace src/*.hs src/Dhallexec/*hs"

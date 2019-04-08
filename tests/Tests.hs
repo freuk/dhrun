@@ -20,54 +20,43 @@ import           Protolude
 {-import           Control.Monad.Mock.TH-}
 
 import           Dhrun.Types
-import           Dhall
-import           Data.Yaml
 import           Data.ByteString.Char8
 import           Control.Monad.Writer
 import           System.IO.Error
 
 data Result = Success | Failure
-testDY
-  :: (MonadIO m, MonadWriter [Text] m, MonadError IOError m) => Text -> m Result
+testDY :: (MonadIO m, MonadWriter [Text] m) => Text -> m Result
 testDY fn = do
 
   tell ["loading " <> fn <> ".yml:"]
-  loadedY <- liftIO (try $ decodeFileEither (toS $ fn <> ".yml")) >>= \case
-    Left  e          -> throwError e
-    Right (Left  pa) -> throwError $ userError $ "parse fail:" <> show pa
-    Right (Right a ) -> return a
-  for_ (lines (encode loadedY)) $ \x -> tell [toS x]
+  loadedY <- decodeDhallExec fn
+  for_ (lines $ encodeDhallExec loadedY) $ \x -> tell [toS x]
 
   tell ["loading " <> fn <> ".dh:"]
-  loadedD <- liftIO (try (input ft $ fn <> ".dh")) >>= \case
-    Left  e -> throwError e
-    Right d -> return d
-  for_ (lines (encode loadedD)) $ \x -> tell [toS x]
+  loadedD <- inputDhallExec fn
+  for_ (lines $ encodeDhallExec loadedD) $ \x -> tell [toS x]
 
   if loadedY == loadedD
     then tell ["success."] >> return Success
     else return Failure
- where
-  ft :: Dhall.Type DhallExec
-  ft = Dhall.auto
 
 main :: IO ()
-main = for_ ["simple", "full"] $ \name ->
-  runWriterT (runExceptT (testDY $ "./examples/" <> name)) >>= \case
+main = for_ ["simple", "full"] $ \testName ->
+  runWriterT (runExceptT (testDY $ "./examples/" <> testName)) >>= \case
     (Right Failure, es) ->
       putText
-          ("Test \""
-          <> name
+          (  "Test \""
+          <> testName
           <> "\" failure: .yml/.dh produced different configs.\nError log:"
           )
         >> for_ es putText
     (Right Success, _) ->
       putText
         $  "Test \""
-        <> name
+        <> testName
         <> "\" success: .yml/.dh produced identical configs."
     (Left (e :: IOError), es) ->
-      putText ("Failure in test " <> name <> " :")
+      putText ("Failure in test " <> testName <> " :")
         >> print e
         >> putText "with test log:"
         >> for_ es putText

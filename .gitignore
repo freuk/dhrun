@@ -13,3 +13,4 @@ dist*
 _output
 */_output
 .direnv
+.ghc.*
