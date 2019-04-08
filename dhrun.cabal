@@ -37,6 +37,7 @@ library dhrun-lib
     conduit,
     conduit-extra,
     unix,
+    pretty-show,
     yaml,
     aeson,
     unliftio-core,

@@ -81,8 +81,8 @@ data DhallExecParse = DhallExecParse
 data DhallExec = DhallExec
   { processSpecs   :: [Cmd],
     verbosityLevel :: Verbosity,
-    preCmd         :: [Text],
-    postCmd        :: [Text]
+    preCmds         :: [Text],
+    postCmds        :: [Text]
   } deriving (Show, Eq)
 
 toInternal :: DhallExecParse -> DhallExec
@@ -93,10 +93,10 @@ toInternal DhallExecParse {..} = DhallExec {..}
     (Just Verbose) -> Normal
     (Just Normal ) -> Normal
     Nothing        -> Normal
-  preCmd = case pre of
+  preCmds = case pre of
     (Just l) -> l
     Nothing  -> []
-  postCmd = case post of
+  postCmds = case post of
     (Just l) -> l
     Nothing  -> []
 
@@ -107,10 +107,10 @@ fromInternal DhallExec {..} = DhallExecParse {..}
   verbosity = case verbosityLevel of
     Normal  -> Nothing
     Verbose -> Just Normal
-  pre = case preCmd of
+  pre = case preCmds of
     [] -> Nothing
     l  -> Just l
-  post = case postCmd of
+  post = case postCmds of
     [] -> Nothing
     l  -> Just l
 

@@ -1,10 +1,12 @@
 {-# language DerivingStrategies #-}
+{-# language FlexibleContexts #-}
+{-# language LambdaCase #-}
 {-# language DataKinds #-}
 {-# language FlexibleInstances #-}
 {-# language ScopedTypeVariables #-}
 {-# language TypeOperators #-}
 {-# language NoImplicitPrelude #-}
-{-# language RecordWildCards #-}
+
 {-# language OverloadedStrings #-}
 
 {-|
@@ -23,60 +25,83 @@ where
 import           Dhrun.Types
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
-{-import           Data.ByteString               as B-}
-                                         {-hiding ( empty )-}
 import           Data.Conduit
 import           Data.Conduit.Combinators      as CC
 import           System.Posix.Signals           ( installHandler
                                                 , keyboardSignal
                                                 , Handler(..)
                                                 )
-{-import           System.Directory-}
-
-{-import           Control.Exception.Base         ( Exception-}
-                                                {-, try-}
-                                                {-, throw-}
-                                                {-)-}
-{-import           Control.Monad.IO.Unlift        ( MonadIO(..)-}
-                                                {-, withRunInIO-}
-                                                {-)-}
-{-import           Data.Text                     as T-}
-                                                {-( unpack-}
-                                                {-, Text-}
-                                                {-)-}
-{-import           Data.Text.Encoding            as TE-}
-                                                {-( decodeUtf8-}
-                                                {-, encodeUtf8-}
-                                                {-)-}
-{-import           Data.Typeable                  ( Typeable )-}
-{-import           System.IO                      ( BufferMode(NoBuffering)-}
-                                                {-, hSetBuffering-}
-                                                {-)-}
-{-import qualified System.IO                     as IO-}
 import           Data.Conduit.Process.Typed
 import           Data.Conduit.Binary           as CB
 
+
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
-runDhrun :: (MonadIO m, Monoid (m ())) => DhallExec -> m ()
-runDhrun DhallExec {..} = mconcat [runPre, runAsyncs, runChecks, runPost]
- where
-  putV t = when (verbosityLevel == Verbose) $ putText t
-  runPre    = when (preCmd /= []) $ putV "running pre-processing steps"
-  runAsyncs = when (processSpecs /= []) $ putV "running async step"
-  runChecks = when (processSpecs /= []) $ putV "running post-mortem checks"
-  runPost   = when (postCmd /= []) $ putV "running post-processing steps"
+runDhrun :: (MonadIO m) => DhallExec -> m ()
+runDhrun = runReaderT runAll
+
+runAll :: (MonadIO m, MonadReader DhallExec m) => m ()
+runAll = do
+  runPre
+  runAsyncs
+  runChecks
+  runPost
+
+putV :: (MonadIO m, MonadReader DhallExec m) => Text -> m ()
+putV text =
+  (== Verbose) . verbosityLevel <$> ask >>= flip when (liftIO $ putText text)
+
+runChecks :: (MonadIO m, MonadReader DhallExec m) => m ()
+runChecks = (preCmds <$> ask) >>= \case
+  [] -> putV "post-mortem check step: no processes."
+  _  -> do
+    putV "post-mortem checks: start"
+    _ <- undefined
+    putV "post-mortem checks: done"
+
+runAsyncs :: (MonadIO m, MonadReader DhallExec m) => m ()
+runAsyncs = (processSpecs <$> ask) >>= \case
+  [] -> putV "async step: no processes."
+  l  -> do
+    putV "async step: start"
+    asyncs <- liftIO $ for l (async . runCmd)
+    _      <- liftIO $ kbInstallHandler $ for_ asyncs cancel
+    putV "Processes started."
+    _ <- liftIO $ waitAnyCancel asyncs
+    putV "async step: done"
+
+runPre :: (MonadIO m, MonadReader DhallExec m) => m ()
+runPre = runMultipleV preCmds "pre-processing"
+
+runPost :: (MonadIO m, MonadReader DhallExec m) => m ()
+runPost = runMultipleV postCmds "post-processing"
+
+runMultipleV
+  :: (MonadIO m, MonadReader DhallExec m)
+  => (DhallExec -> [Text])
+  -> Text
+  -> m ()
+runMultipleV getter desc = getter <$> ask >>= \case
+  [] -> putV $ "no " <> desc <> " commands to run."
+  l  -> do
+    putV $ desc <> ": start"
+    for_ l $ \x -> liftIO (runProcess (shell $ toS x)) >>= \case
+      ExitSuccess -> putV ("ran one " <> desc <> " command.")
+      ExitFailure _ ->
+        liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
+    putV $ desc <> ": done"
 
 newtype MonitoringResult = PatternMatched Text deriving (Show, Typeable)
 instance Exception MonitoringResult
 data TracebackScan = WarningTraceback | Clean deriving (Show)
+
 runCmd
   :: (MonadIO m)
   => Cmd
   -> m (Either MonitoringResult (ExitCode, TracebackScan, TracebackScan))
-runCmd = Protolude.undefined
+runCmd = liftIO . undefined
 
-kbInstallHandler :: IO () -> IO Handler
-kbInstallHandler h = installHandler keyboardSignal (Catch h) Nothing
+kbInstallHandler :: (MonadIO m) => IO () -> m Handler
+kbInstallHandler h = liftIO $ installHandler keyboardSignal (Catch h) Nothing
 
 withAsyncConduitsOnProcess
   :: Process () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
@@ -91,7 +116,8 @@ withAsyncConduitsOnProcess p outSink outTest errSink errTest = withAsyncs
   (doFilter errTest (getStderr p) errSink)
 
 withAsyncs :: IO a -> IO a1 -> (Async a -> Async a1 -> IO b) -> IO b
-withAsyncs io1 io2 f = withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
+withAsyncs io1 io2 f =
+  liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
 
 doFilter
   :: (MonadIO m)
@@ -208,3 +234,8 @@ makeBehavior = Protolude.undefined
 --   DontRun               -> Nothing
 --   JustRun stdOut stdErr -> Just $ Instrumentation crProc stdOut stdErr Nothing
 --   Test t stdOut stdErr  -> Just $ Instrumentation crProc stdOut stdErr (Just t)
+--
+--
+--
+--
+--
