@@ -1,12 +1,12 @@
 {-# language DerivingStrategies #-}
 {-# language FlexibleContexts #-}
 {-# language LambdaCase #-}
+{-# language RecordWildCards #-}
 {-# language DataKinds #-}
 {-# language FlexibleInstances #-}
 {-# language ScopedTypeVariables #-}
 {-# language TypeOperators #-}
 {-# language NoImplicitPrelude #-}
-
 {-# language OverloadedStrings #-}
 
 {-|
@@ -33,13 +33,20 @@ import           System.Posix.Signals           ( installHandler
                                                 )
 import           Data.Conduit.Process.Typed
 import           Data.Conduit.Binary           as CB
-
+import           Control.Monad.Writer
+import qualified Data.Text                     as T
+                                                ( isInfixOf )
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
 runDhrun :: (MonadIO m) => DhallExec -> m ()
-runDhrun = runReaderT runAll
+runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
+  ((), []    ) -> return ()
+  ((), errors) -> liftIO $ do
+    putText "Failure. The following errors were encountered:"
+    void $ Protolude.print errors
+    die "exiting."
 
-runAll :: (MonadIO m, MonadReader DhallExec m) => m ()
+runAll :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
 runAll = do
   runPre
   runAsyncs
@@ -50,12 +57,30 @@ putV :: (MonadIO m, MonadReader DhallExec m) => Text -> m ()
 putV text =
   (== Verbose) . verbosityLevel <$> ask >>= flip when (liftIO $ putText text)
 
-runChecks :: (MonadIO m, MonadReader DhallExec m) => m ()
-runChecks = (preCmds <$> ask) >>= \case
+runChecks :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
+runChecks = (processSpecs <$> ask) >>= \case
   [] -> putV "post-mortem check step: no processes."
-  _  -> do
+  l  -> do
     putV "post-mortem checks: start"
-    _ <- undefined
+    for_ l $ \Cmd {..} -> do
+      putV $ "running post-checks for" <> binaryName <> " " <> mconcat argList
+      for_ postChecks $ \FileCheck {..} -> do
+        contents <- liftIO $ readFile (toS filename)
+        forM_ (wantInfixes filecheck) $ \x -> unless
+          (T.isInfixOf x contents)
+          (tell
+            [ "post mortem check fail: "
+              <> x
+              <> " not found in file "
+              <> filename
+            ]
+          )
+        forM_ (avoidInfixes filecheck) $ \x -> when
+          (T.isInfixOf x contents)
+          (tell
+            ["post mortem check fail: " <> x <> " found in file " <> filename]
+          )
+        tell ["something"]
     putV "post-mortem checks: done"
 
 runAsyncs :: (MonadIO m, MonadReader DhallExec m) => m ()

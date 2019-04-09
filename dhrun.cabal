@@ -33,6 +33,7 @@ library dhrun-lib
   build-depends:
     base,
     protolude,
+    mtl,
     bytestring,
     conduit,
     conduit-extra,
