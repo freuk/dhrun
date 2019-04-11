@@ -1,4 +1,3 @@
-    let Check =
-          { avoids : Optional (List Text), wants : Optional (List Text) }
+    let Check = { avoids : Optional (List Text), wants : Optional (List Text) }
 
 in  Check

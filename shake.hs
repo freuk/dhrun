@@ -14,8 +14,15 @@ import           Development.Shake.FilePath
 import           Control.Monad
 import           System.Process.Typed
 import           System.Posix.Process
+import qualified System.IO                     as SIO
+                                                ( hSetBuffering
+                                                , stdout
+                                                , BufferMode(..)
+                                                )
+import           Options.Applicative as OA
 
-data GhcidTargets = Test | Lib | App
+
+data GhcidTarget = Test | Lib | App deriving (Enum,Bounded,Show,Read)
 toArgs Test = ghcidTarget
   "new-repl test:Tests"
   [ "--test=Main.main"
@@ -42,22 +49,39 @@ ghcidTarget target extra =
     ]
     ++ extra
 
-main = do
+runGhcid :: GhcidTarget -> IO ()
+runGhcid target = do
   runProcess_ "rm -f .ghc.*"
-  getArgs >>= deal
+  executeFile "ghcid" True (toS <$> toArgs target) Nothing
+
+main :: IO ()
+main = SIO.hSetBuffering SIO.stdout SIO.NoBuffering
+  <> void (join (execParser (info (opts <**> helper) idm)))
  where
-  deal args
-    | "ghcid-test" `elem` args = void
-    $ executeFile "ghcid" True (toS <$> toArgs Test) Nothing
-    | "ghcid-lib" `elem` args = void
-    $ executeFile "ghcid" True (toS <$> toArgs Lib) Nothing
-    | "ghcid-app" `elem` args = void
-    $ executeFile "ghcid" True (toS <$> toArgs App) Nothing
-    | otherwise = runshake
+  opts :: Parser (IO ())
+  opts = hsubparser
+    (  OA.command
+        "ghcid"
+        (info (runGhcid <$> targetParser)
+              (progDesc "Run an argo-compatible nix-build.")
+        )
+    <> OA.command
+         "shake"
+         (info (pure runshake)
+               (progDesc "run shake.")
+         )
+    <> help "Type of operation to run."
+    )
+
+targetParser :: Parser GhcidTarget
+targetParser = argument auto
+  (metavar "TARGET" <> showDefault <> help
+    (toS ("The ghcid target, in " <> mconcat ts))
+  )
+  where ts = intersperse " " (Prelude.show <$> [(minBound :: GhcidTarget) ..])
 
 runshake = shakeArgs shakeOptions $ do
   phony "clean" $ removeFilesAfter "." ["README.md"]
-
   phony "brittany" brittany
 
   {-want ["README.md"]-}

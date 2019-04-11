@@ -1,6 +1,6 @@
 {-|
-Module      : Dhallexec
-Description : Dhallexec library
+Module      : Dhrun
+Description : Dhrun
 Copyright   : (c) Valentin Reis, 2018
 License     : MIT
 Maintainer  : fre@freux.fr

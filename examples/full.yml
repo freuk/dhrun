@@ -1,8 +1,5 @@
-pre:
-  - echo "preparing!"
-post:
-  - echo "finishing!"
-verbosity: Verbose
+---
+# list of commands to run
 cmds:
   - args:
       - hello
@@ -19,3 +16,11 @@ cmds:
     vars:
       - value: BAR
         varname: FOO
+# verbosity accepts Verbose and Normal
+verbosity: Verbose
+# pre-async setup commands
+pre:
+  - echo "preparing!"
+# post-async destroy commands (executed regardless of success/failure)
+post:
+  - echo "finishing!"

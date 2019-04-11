@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-rm .ghc.env*
+rm -f .ghc.env*
 runhaskell shake.hs $@
