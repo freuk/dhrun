@@ -1,0 +1,17 @@
+    let Verbosity = ../Verbosity/Verbosity.dh
+
+in  let FileCheck = ../FileCheck/FileCheck.dh
+
+in  let Cmd = ../Cmd/Cmd.dh
+
+in  { cmds :
+        List Cmd
+    , verbosity :
+        Verbosity
+    , workdir :
+        Text
+    , pre :
+        List Text
+    , post :
+        List Text
+    }

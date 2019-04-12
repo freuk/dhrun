@@ -10,8 +10,16 @@ cmds:
             - Traceback
             - Error
         filename: hello
-    stderrcheck: null
-    stdoutcheck: null
+    out:
+      filename: foo
+      filecheck:
+        avoids: null
+        wants: null
+    err:
+      filename: bar
+      filecheck:
+        avoids: null
+        wants: null
     name: touch
     vars:
       - value: BAR
@@ -24,3 +32,5 @@ pre:
 # post-async destroy commands (executed regardless of success/failure)
 post:
   - echo "finishing!"
+
+workdir: "/tmp/dhrun_wd"

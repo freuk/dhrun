@@ -29,16 +29,16 @@ executable dhrun
 
 library dhrun-lib
   hs-source-dirs: src
-  exposed-modules: Dhrun.Types, Dhrun.Run
+  exposed-modules: Dhrun.Types, Dhrun.AesonTypes, Dhrun.Run
   build-depends:
     base,
     protolude,
     mtl,
     bytestring,
     conduit,
+    unliftio-core,
     conduit-extra,
     unix,
-    pretty-show,
     yaml,
     aeson,
     unliftio-core,

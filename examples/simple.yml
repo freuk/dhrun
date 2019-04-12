@@ -4,3 +4,13 @@ cmds:
     args:
       - hello
       - world
+    out:
+      filename: foo
+      filecheck:
+        avoids: null
+        wants: null
+    err:
+      filename: bar
+      filecheck:
+        avoids: null
+        wants: null

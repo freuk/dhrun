@@ -1,33 +1,32 @@
-    let Verbosity = ./../resources/Verbosity.dh
+    let values = ./../resources/package.dh
 
-in  let EnvVar = ./../resources/EnvVar.dh
-
-in  let FileCheck = ./../resources/FileCheck.dh
-
-in  let Check = ./../resources/Check.dh
+in  let types = ./../resources/types.dh
 
 in  let config =
-          { cmds =
-              [ { name =
-                    "echo"
-                , args =
-                    [ [ "hello", "world" ] ] : Optional (List Text)
-                , stdoutcheck =
-                    [] : Optional Check
-                , stderrcheck =
-                    [] : Optional Check
-                , postchecks =
-                    [] : Optional (List FileCheck)
-                , vars =
-                    [] : Optional (List EnvVar)
-                }
-              ]
-          , verbosity =
-              [] : Optional Verbosity
-          , pre =
-              [] : Optional (List Text)
-          , post =
-              [] : Optional (List Text)
-          }
+            { cmds =
+                [ { name =
+                      "echo"
+                  , args =
+                      [ "hello", "world" ] : List Text
+                  , out =
+                      { filename = "foo", filecheck = values.emptyCheck }
+                  , err =
+                      { filename = "bar", filecheck = values.emptyCheck }
+                  , postchecks =
+                      [] : List types.FileCheck
+                  , env =
+                      [] : List types.EnvVar
+                  }
+                ]
+            , verbosity =
+                values.Normal
+            , workdir =
+                "./"
+            , pre =
+                [] : List Text
+            , post =
+                [] : List Text
+            }
+          : types.Config
 
 in  config

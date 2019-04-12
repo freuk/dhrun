@@ -6,9 +6,13 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhallexec
-  ( module Dhallexec.Types
+module Dhrun
+  ( module Dhrun.Types,
+    module Dhrun.AesonTypes,
+    module Dhrun.Run
   )
 where
 
-import           Dhallexec.Types
+import           Dhrun.Types
+import           Dhrun.AesonTypes
+import           Dhrun.Run

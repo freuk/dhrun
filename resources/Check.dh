@@ -1,3 +1,0 @@
-    let Check = { avoids : Optional (List Text), wants : Optional (List Text) }
-
-in  Check

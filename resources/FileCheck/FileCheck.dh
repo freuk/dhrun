@@ -1,4 +1,4 @@
-    let Check = ./Check.dh
+    let Check = ../Check/Check.dh
 
 in  let FileCheck = { filename : Text, filecheck : Check }
 

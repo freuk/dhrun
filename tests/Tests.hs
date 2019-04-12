@@ -20,6 +20,7 @@ import           Protolude
 {-import           Control.Monad.Mock.TH-}
 
 import           Dhrun.Types
+import           Dhrun.AesonTypes
 import           Data.ByteString.Char8
 import           Control.Monad.Writer
 import           System.IO.Error

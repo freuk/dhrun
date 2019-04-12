@@ -1,0 +1,13 @@
+{ Verbosity =
+    ./Verbosity/Verbosity.dh
+, Cmd =
+    ./Cmd/Cmd.dh
+, EnvVar =
+    ./EnvVar/EnvVar.dh
+, Check =
+    ./Check/Check.dh
+, Config =
+    ./Config/Config.dh
+, FileCheck =
+    ./FileCheck/FileCheck.dh
+}

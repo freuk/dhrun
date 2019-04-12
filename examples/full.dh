@@ -1,50 +1,38 @@
-    let resources = ./../resources/package.dh
+    let values = ./../resources/package.dh
 
-in  let Verbosity = ./../resources/Verbosity.dh
-
-in  let EnvVar = ./../resources/EnvVar.dh
-
-in  let FileCheck = ./../resources/FileCheck.dh
-
-in  let Check = ./../resources/Check.dh
-
-in  let Cmd = ./../resources/Cmd.dh
+in  let types = ./../resources/types.dh
 
 in  let config =
-          { cmds =
-              [   { name =
+            { cmds =
+                [ { name =
                       "touch"
                   , args =
-                      [ [ "hello" ] ] : Optional (List Text)
-                  , stdoutcheck =
-                      [] : Optional Check
-                  , stderrcheck =
-                      [] : Optional Check
+                      [ "hello" ]
+                  , out =
+                      { filename = "foo", filecheck = values.emptyCheck }
+                  , err =
+                      { filename = "bar", filecheck = values.emptyCheck }
                   , postchecks =
-                      [ [ { filename =
-                              "hello"
-                          , filecheck =
-                              { wants =
-                                  [] : Optional (List Text)
-                              , avoids =
-                                  [ [ "Traceback", "Error" ] ] : Optional
-                                                                 (List Text)
-                              }
-                          }
-                        ]
-                      ] : Optional (List FileCheck)
-                  , vars =
-                      [ [ { varname = "FOO" : Text, value = "BAR" : Text } ]
-                      ] : Optional (List EnvVar)
+                      [ { filename =
+                            "hello"
+                        , filecheck =
+                              values.emptyCheck
+                            ⫽ { avoids = [ "Traceback", "Error" ] }
+                        }
+                      ]
+                  , env =
+                      [ { varname = "FOO", value = "BAR" } ]
                   }
-                : Cmd
-              ]
-          , verbosity =
-              [ resources.Verbose ] : Optional Verbosity
-          , pre =
-              [ [ "echo \"preparing!\"" ] ] : Optional (List Text)
-          , post =
-              [ [ "echo \"finishing!\"" ] ] : Optional (List Text)
-          }
+                ]
+            , verbosity =
+                values.Verbose
+            , workdir =
+                "/tmp/dhrun_wd" : Text
+            , pre =
+                [ "echo \"preparing!\"" ]
+            , post =
+                [ "echo \"finishing!\"" ]
+            }
+          : types.Config
 
 in  config
