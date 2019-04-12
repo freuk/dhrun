@@ -1,5 +1,4 @@
 - working setting
 - workdir creation
 - verbosity cli override
-- parsing the non "Parse" datatype directly when using dhall, to simplify types. still parse the Maybe-using version for yaml.
 - add one more data layer for "augmented" types with newtypes that add type safety.
