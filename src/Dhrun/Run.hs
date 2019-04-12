@@ -27,7 +27,7 @@ import           Dhrun.Types
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
 import           Data.Conduit
-import           Data.Conduit.Combinators      as CC
+import qualified Data.Conduit.Combinators      as CC
 import           System.Posix.Signals           ( installHandler
                                                 , keyboardSignal
                                                 , Handler(..)
@@ -46,6 +46,11 @@ import qualified System.IO                     as SIO
 
 import           Control.Monad.IO.Unlift        ( MonadIO(..)
                                                 , withRunInIO
+                                                )
+import qualified Data.ByteString               as B
+import           Control.Exception.Base         ( Exception
+                                                , try
+                                                , throw
                                                 )
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
@@ -105,6 +110,7 @@ runAsyncs = (cmds <$> ask) >>= \case
     _      <- liftIO $ kbInstallHandler $ for_ asyncs cancel
     putV "Processes started."
     _ <- liftIO $ waitAnyCancel asyncs
+    putV "TODO check that result value bitch" -- TODO
     putV "async step: done"
  where
   mkAsyncs
@@ -140,58 +146,66 @@ runMultipleV getter desc = getter <$> ask >>= \case
         liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
     putV $ desc <> ": done"
 
-newtype MonitoringResult = PatternMatched Text deriving (Show, Typeable)
+data MonitoringResult = PatternMatched deriving (Show, Typeable)
 instance Exception MonitoringResult
-data TracebackScan = WarningTraceback | Clean deriving (Show)
+data TracebackScan = WarningTraceback Text | Clean deriving (Show)
 
 runCmd
   :: Text -- | workDir
   -> Cmd
   -> IO (Either MonitoringResult (ExitCode, TracebackScan, TracebackScan))
 runCmd wd Cmd {..} =
-  try
-    $ withConduitSinks (wd <> "/" <> filename out) (wd <> "/" <> filename err)
-    $ \outSink errSink -> withProcess pc $ \p ->
-        withAsyncConduitsOnProcess p
-                                   outSink
-                                   (filecheck out)
-                                   errSink
-                                   (filecheck err)
-                                   waitEither
-          >>= \case
-                Left  Clean -> (, Clean, Clean) <$> waitExitCode p
-                Right Clean -> (, Clean, Clean) <$> waitExitCode p
-                Right WarningTraceback ->
-                  (, Clean, WarningTraceback) <$> waitExitCode p
-                Left WarningTraceback ->
-                  (, WarningTraceback, Clean) <$> waitExitCode p
-  where pc = configureConduits wd $ proc (toS name) (toS <$> args)
+  try $ withConduitSinks (getfn out) (getfn err) $ \outSink errSink ->
+    withProcess pc $ \p ->
+      withAsyncConduitsOnProcess
+          p
+          ConduitSpec {conduit = outSink, ccheck = filecheck out}
+          ConduitSpec {conduit = errSink, ccheck = filecheck err}
+          waitEither
+        >>= \case
+              Left  Clean -> (, Clean, Clean) <$> waitExitCode p
+              Right Clean -> (, Clean, Clean) <$> waitExitCode p
+              Right (WarningTraceback t) ->
+                (, Clean, WarningTraceback t) <$> waitExitCode p
+              Left (WarningTraceback t) ->
+                (, (WarningTraceback t), Clean) <$> waitExitCode p
+ where
+  pc = configureConduits wd $ proc (toS name) (toS <$> args)
+  getfn :: FileCheck Check -> Text
+  getfn fc = wd <> "/" <> filename fc
 
 kbInstallHandler :: (MonadIO m) => IO () -> m Handler
 kbInstallHandler h = liftIO $ installHandler keyboardSignal (Catch h) Nothing
 
+data ConduitSpec = ConduitSpec {
+  conduit :: ConduitT ByteString Void IO (),
+  ccheck   :: Check
+}
+
+-- | withConduitSinks runs an IO action. It gives two conduit testing asyncs in scope.
 withAsyncConduitsOnProcess
   :: Process () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
-  -> ConduitT ByteString Void IO () --stdout conduit
-  -> Check --stdout check
-  -> ConduitT ByteString Void IO () --stderr conduit
-  -> Check --stderr check
-  -> (Async TracebackScan -> Async TracebackScan -> IO b) --
+  -> ConduitSpec --stdout conduit spec
+  -> ConduitSpec --stderr conduit spec
+  -> (Async TracebackScan -> Async TracebackScan -> IO b) -- the lambda-wrapped IO action
   -> IO b
-withAsyncConduitsOnProcess p outSink outTest errSink errTest = withAsyncs
-  (doFilter outTest (getStdout p) outSink)
-  (doFilter errTest (getStderr p) errSink)
-
-withAsyncs :: IO a -> IO a1 -> (Async a -> Async a1 -> IO b) -> IO b
-withAsyncs io1 io2 f =
-  liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
+withAsyncConduitsOnProcess p cOut cErr = withAsyncs
+  (doFilter (ccheck cOut) (getStdout p) (conduit cOut))
+  (doFilter (ccheck cErr) (getStderr p) (conduit cErr))
+ where
+  withAsyncs
+    :: IO TracebackScan
+    -> IO TracebackScan
+    -> (Async TracebackScan -> Async TracebackScan -> IO b)
+    -> IO b
+  withAsyncs io1 io2 f =
+    liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
 
 doFilter
-  :: (MonadIO m)
-  => Check
-  -> ConduitT () ByteString m ()
-  -> ConduitT ByteString Void m ()
-  -> m TracebackScan
+  :: Check
+  -> ConduitT () ByteString IO ()
+  -> ConduitT ByteString Void IO ()
+  -> IO TracebackScan
 doFilter behavior source sink =
   runConduit
     $              source
@@ -199,42 +213,26 @@ doFilter behavior source sink =
     .|             makeBehavior behavior
     `fuseUpstream` CC.unlinesAscii
     `fuseUpstream` sink
+
+makeBehavior :: Check -> ConduitT ByteString ByteString IO TracebackScan
+makeBehavior Check {..} = case wants of
+  [] -> cleanLooper
+  as -> expectfulLooper $ toS <$> as
  where
-  makeBehavior :: Check -> ConduitT ByteString ByteString m TracebackScan
-  makeBehavior _ = Protolude.undefined
 
-{-makeBehavior-}
-  {-:: (MonadIO m)-}
-  {-=> Check-}
-  {--> ConduitT ByteString ByteString m TracebackScan-}
-{-makeBehavior Check{..} = \case-}
-  {-Just ExpectClean       -> warnOnTraceback False-}
-  {-Just (WaitFor message) -> untilMatch message False-}
-  {-Nothing                -> awaitForever yield $> Clean-}
+  cleanLooper :: ConduitT ByteString ByteString IO TracebackScan
+  cleanLooper = noAvoidsAndOtherwise $ \b -> yield b >> cleanLooper
 
---
--- warnOnTraceback
---   :: (MonadIO m) => Bool -> ConduitT ByteString ByteString m TracebackScan
--- warnOnTraceback sawTraceback = await >>= \case
---   Just b | B.isInfixOf "Traceback" b -> yield b >> warnOnTraceback True
---          | otherwise                 -> yield b >> warnOnTraceback sawTraceback
---   Nothing -> if sawTraceback then return WarningTraceback else return Clean
---
+  expectfulLooper
+    :: [ByteString] -> ConduitT ByteString ByteString IO TracebackScan
+  expectfulLooper [] = throw PatternMatched
+  expectfulLooper l  = noAvoidsAndOtherwise $ \b -> yield b
+    >> expectfulLooper (filter (\x -> not $ B.isInfixOf x b) (toS <$> l))
 
-{-untilMatch-}
- {-:: (MonadIO m)-}
- {-=> Text-}
- {--> Bool-}
- {--> ConduitT ByteString ByteString m TracebackScan-}
-{-untilMatch msg sawTraceback = await >>= \case-}
- {-Just b-}
-   {-| B.isInfixOf "Traceback" b-}
-   {--> untilMatch msg True >> yield b >> untilMatch msg True-}
-   {-| B.isInfixOf (TE.encodeUtf8 msg) b && not sawTraceback-}
-   {--> throw (PatternMatched $ TE.decodeUtf8 b)-}
-   {-| otherwise-}
-   {--> yield b >> untilMatch msg sawTraceback-}
- {-Nothing -> return Clean-}
+  noAvoidsAndOtherwise otherwiseConduit = await >>= \case
+    Just b | any (`B.isInfixOf` b) (toS <$> avoids) -> throw PatternMatched
+           | otherwise                              -> otherwiseConduit b
+    Nothing -> return Clean
 
 configureConduits
   :: Text
@@ -249,18 +247,20 @@ configureConduits wd p =
     $ setStdin closed
     $ setWorkingDir (toS wd) p
 
+-- | runs an IO action with two conduits in lambda scope
 withConduitSinks
-  :: Text
-  -> Text
+  :: Text -- stdout filename
+  -> Text -- stderr filename
   -> (ConduitT ByteString o IO () -> ConduitT ByteString o1 IO () -> IO b)
   -> IO b
-withConduitSinks outName errName f =
+withConduitSinks outName errName lambdaIO =
   withSinkFileNoBuffering (toS outName) $ \outSink ->
-    withSinkFileNoBuffering (toS errName) $ \errSink -> f outSink errSink
+    withSinkFileNoBuffering (toS errName) $ \errSink -> lambdaIO outSink errSink
 
+-- | runs an IO action with a file sink in lambda scope
 withSinkFileNoBuffering
   :: FilePath -> (ConduitT ByteString o IO () -> IO b) -> IO b
-withSinkFileNoBuffering filepath inner =
+withSinkFileNoBuffering filepath lambdaIO =
   withRunInIO $ \run -> SIO.withBinaryFile filepath SIO.WriteMode $ \h -> do
     SIO.hSetBuffering h SIO.NoBuffering
-    run $ inner $ sinkHandle h
+    run $ lambdaIO $ sinkHandle h

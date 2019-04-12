@@ -1,1 +1,7 @@
-{ Normal = ./Verbosity/Normal.dh, Verbose = ./Verbosity/Verbose.dh, emptyCheck = ./Check/empty.dh }
+{ Normal =
+    ./Verbosity/Normal.dh
+, Verbose =
+    ./Verbosity/Verbose.dh
+, emptyCheck =
+    ./Check/empty.dh
+}

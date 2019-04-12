@@ -1,4 +1,5 @@
-- working setting
 - workdir creation
-- verbosity cli override
+
 - add one more data layer for "augmented" types with newtypes that add type safety.
+
+- CLI: dhall OR yaml, print yaml, verbosity cli override
