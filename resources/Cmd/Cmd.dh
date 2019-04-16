@@ -1,10 +1,10 @@
-    let Verbosity = ../Verbosity/Verbosity.dh
+    let Verbosity = ./../Verbosity/Verbosity.dh
 
-in  let EnvVar = ../EnvVar/EnvVar.dh
+in  let EnvVar = ./../EnvVar/EnvVar.dh
 
-in  let FileCheck = ../FileCheck/FileCheck.dh
+in  let FileCheck = ./../FileCheck/FileCheck.dh
 
-in  let Check = ../Check/Check.dh
+in  let Check = ./../Check/Check.dh
 
 in  { name :
         Text
@@ -16,6 +16,8 @@ in  { name :
         FileCheck
     , postchecks :
         List FileCheck
-    , env :
+    , vars :
         List EnvVar
+    , passvars :
+        List Text
     }

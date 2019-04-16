@@ -1,0 +1,49 @@
+    let values = ./../../resources/package.dh
+
+in  let types = ./../../resources/types.dh
+
+in  let config =
+            { cmds =
+                [ { name =
+                      "cat"
+                  , args =
+                      [ "./prefile" ] : List Text
+                  , out =
+                      { filename = "toto.out", filecheck = values.emptyCheck }
+                  , err =
+                      { filename = "toto.err", filecheck = values.emptyCheck }
+                  , postchecks =
+                      [] : List types.FileCheck
+                  , vars =
+                      [] : List types.EnvVar
+                  , passvars =
+                      [] : List Text
+                  }
+                , { name =
+                      "echo"
+                  , args =
+                      [ "Error" ] : List Text
+                  , out =
+                      { filename = "tata.out", filecheck = values.emptyCheck }
+                  , err =
+                      { filename = "tata.err", filecheck = values.emptyCheck }
+                  , postchecks =
+                      [] : List types.FileCheck
+                  , vars =
+                      [] : List types.EnvVar
+                  , passvars =
+                      [] : List Text
+                  }
+                ]
+            , verbosity =
+                values.Normal
+            , workdir =
+                "./_dhrun_out"
+            , pre =
+                [ "echo toto > ./prefile" ] : List Text
+            , post =
+                [ "echo tata > ./postfile" ] : List Text
+            }
+          : types.Config
+
+in  config

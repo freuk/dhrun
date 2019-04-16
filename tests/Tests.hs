@@ -30,11 +30,11 @@ testDY :: (MonadIO m, MonadWriter [Text] m) => Text -> m Result
 testDY fn = do
 
   tell ["loading " <> fn <> ".yml:"]
-  loadedY <- decodeDhallExec fn
+  loadedY <- decodeDhallExec $ "./examples/" <> fn <> "/" <> fn <> ".yml"
   for_ (lines $ encodeDhallExec loadedY) $ \x -> tell [toS x]
 
   tell ["loading " <> fn <> ".dh:"]
-  loadedD <- inputDhallExec fn
+  loadedD <- inputDhallExec $ "./examples/" <> fn <> "/" <> fn <> ".dh"
   for_ (lines $ encodeDhallExec loadedD) $ \x -> tell [toS x]
 
   if loadedY == loadedD
@@ -42,8 +42,8 @@ testDY fn = do
     else return Failure
 
 main :: IO ()
-main = for_ ["simple", "full"] $ \testName ->
-  runWriterT (runExceptT (testDY $ "./examples/" <> testName)) >>= \case
+main = for_ ["simple", "full", "two"] $ \testName ->
+  runWriterT (runExceptT (testDY testName)) >>= \case
     (Right Failure, es) ->
       putText
           (  "Test \""

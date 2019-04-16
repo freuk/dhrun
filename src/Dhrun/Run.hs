@@ -1,5 +1,5 @@
 {-# language DerivingStrategies #-}
-{-# language TupleSections #-}
+
 {-# language FlexibleContexts #-}
 {-# language LambdaCase #-}
 {-# language RecordWildCards #-}
@@ -24,6 +24,7 @@ module Dhrun.Run
 where
 
 import           Dhrun.Types
+import           Dhrun.AesonTypes               ( encodeCmd )
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
 import           Data.Conduit
@@ -36,7 +37,9 @@ import           Data.Conduit.Process.Typed
 import           Data.Conduit.Binary           as CB
 import           Control.Monad.Writer
 import qualified Data.Text                     as T
-                                                ( isInfixOf )
+                                                ( isInfixOf
+                                                , lines
+                                                )
 import qualified System.IO                     as SIO
                                                 ( BufferMode(NoBuffering)
                                                 , hSetBuffering
@@ -52,6 +55,21 @@ import           Control.Exception.Base         ( Exception
                                                 , try
                                                 , throw
                                                 )
+import qualified System.Directory              as SD
+                                                ( createDirectoryIfMissing )
+import qualified System.Environment            as SE
+                                                ( getEnvironment )
+import qualified Data.Map.Lazy                 as DM
+                                                ( fromList
+                                                , toList
+                                                )
+import qualified Data.Map.Merge.Lazy           as DMM
+                                                ( merge
+                                                , preserveMissing
+                                                , zipWithMatched
+                                                )
+import           Control.Arrow                  ( (***) )
+import qualified System.Timeout                as ST
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
 runDhrun :: (MonadIO m) => DhallExec -> m ()
@@ -80,7 +98,8 @@ runChecks = (cmds <$> ask) >>= \case
   l  -> do
     putV "post-mortem checks: start"
     for_ l $ \Cmd {..} -> do
-      putV $ "running post-mortem checks for" <> name <> " " <> mconcat args
+      putV $ "running post-mortem checks for " <> name <> " " <> mconcat
+        (intersperse " " args)
       for_ postchecks $ \FileCheck {..} -> do
         contents <- liftIO $ readFile (toS filename)
         forM_ (wants filecheck) $ \x -> unless
@@ -100,30 +119,64 @@ runChecks = (cmds <$> ask) >>= \case
         tell ["something"]
     putV "post-mortem checks: done"
 
-runAsyncs :: (MonadIO m, MonadReader DhallExec m) => m ()
+btw :: (Functor f) => (t -> f b) -> t -> f t
+btw k x = x <$ k x
+
+data Std = Out | Err
+stdToS :: Std -> Text
+stdToS Out = "stdout"
+stdToS Err = "stderr"
+
+data CmdResult =
+      Timeout Cmd
+    | AllDiedLegal
+    | DiedFailure Cmd Int
+    | FoundAll Cmd
+    | FoundIllegal Cmd Std
+    | OutputLacking Cmd Std
+
+runAsyncs :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
 runAsyncs = (cmds <$> ask) >>= \case
   [] -> putV "async step: no processes."
   l  -> do
     putV "async step: start"
-    wd     <- workdir <$> ask
-    asyncs <- liftIO $ mkAsyncs l wd
+    wd <- toS . workdir <$> ask >>= btw
+      (liftIO . SD.createDirectoryIfMissing False)
+    externEnv <- (\lenv -> (\(n, v) -> (toS n, toS v)) <$> lenv)
+      <$> liftIO SE.getEnvironment
+    asyncs <- liftIO $ mkAsyncs l externEnv $ toS wd
     _      <- liftIO $ kbInstallHandler $ for_ asyncs cancel
-    putV "Processes started."
-    _ <- liftIO $ waitAnyCancel asyncs
-    putV "TODO check that result value bitch" -- TODO
+    putV "processes started."
+    liftIO (waitAnyCancel asyncs) >>= \(_, x) -> case x of
+      Timeout c ->
+        tell $ "The following command timed out:" : T.lines (toS $ encodeCmd c)
+      DiedFailure c n ->
+        tell
+          $  "The following command died with exit code "
+          <> show n
+          <> " :"
+          :  T.lines (toS $ encodeCmd c)
+      AllDiedLegal -> putText "All commands exited successfully."
+      FoundAll c ->
+        putText
+          $ "All searched patterns the following command were found. Killing all processes."
+          <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
+      FoundIllegal c e ->
+        tell
+          $  "An illegal pattern was found in the output of this process' "
+          <> stdToS e
+          <> ":"
+          :  T.lines (toS $ encodeCmd c)
+      OutputLacking c e ->
+        tell
+          $  "This process' "
+          <> stdToS e
+          <> " was found to be lacking pattern(s):"
+          :  T.lines (toS $ encodeCmd c)
     putV "async step: done"
  where
-  mkAsyncs
-    :: [Cmd]
-    -> Text
-    -> IO
-         [ Async
-             ( Either
-                 MonitoringResult
-                 (ExitCode, TracebackScan, TracebackScan)
-             )
-         ]
-  mkAsyncs l wd = for l (async . runCmd wd)
+  mkAsyncs :: [Cmd] -> [(Text, Text)] -> Text -> IO [Async CmdResult]
+  mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
 
 runPre :: (MonadIO m, MonadReader DhallExec m) => m ()
 runPre = runMultipleV pre "pre-processing"
@@ -140,39 +193,102 @@ runMultipleV getter desc = getter <$> ask >>= \case
   [] -> putV $ "no " <> desc <> " commands to run."
   l  -> do
     putV $ desc <> ": start"
-    for_ l $ \x -> liftIO (runProcess (shell $ toS x)) >>= \case
-      ExitSuccess -> putV ("ran one " <> desc <> " command.")
-      ExitFailure _ ->
-        liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
+    wd <- toS . workdir <$> ask >>= btw
+      (liftIO . SD.createDirectoryIfMissing False)
+    for_ l
+      $ \x -> liftIO (runProcess $ setWorkingDir wd (shell $ toS x)) >>= \case
+          ExitSuccess -> putV ("ran one " <> desc <> " command.")
+          ExitFailure _ ->
+            liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
     putV $ desc <> ": done"
 
-data MonitoringResult = PatternMatched deriving (Show, Typeable)
+data MonitoringResult =
+    ThrowFoundAllWants
+  | ThrowFoundAnAvoid
+  deriving (Show, Typeable)
 instance Exception MonitoringResult
-data TracebackScan = WarningTraceback Text | Clean deriving (Show)
+data ScanResult =  Clean | Lacking  deriving (Show)
 
 runCmd
-  :: Text -- | workDir
+  :: [(Text, Text)] -- | external environment
+  -> Text -- | workDir
   -> Cmd
-  -> IO (Either MonitoringResult (ExitCode, TracebackScan, TracebackScan))
-runCmd wd Cmd {..} =
-  try $ withConduitSinks (getfn out) (getfn err) $ \outSink errSink ->
-    withProcess pc $ \p ->
-      withAsyncConduitsOnProcess
-          p
-          ConduitSpec {conduit = outSink, ccheck = filecheck out}
-          ConduitSpec {conduit = errSink, ccheck = filecheck err}
-          waitEither
-        >>= \case
-              Left  Clean -> (, Clean, Clean) <$> waitExitCode p
-              Right Clean -> (, Clean, Clean) <$> waitExitCode p
-              Right (WarningTraceback t) ->
-                (, Clean, WarningTraceback t) <$> waitExitCode p
-              Left (WarningTraceback t) ->
-                (, (WarningTraceback t), Clean) <$> waitExitCode p
+  -> IO CmdResult
+
+runCmd fullExternEnv wd c@Cmd {..} = try goThrowsTimeout >>= \case
+  Left  ThrowFoundAllWants -> return $ FoundAll c
+  Left  ThrowFoundAnAvoid -> return undefined
+  Right r                    -> return r
  where
-  pc = configureConduits wd $ proc (toS name) (toS <$> args)
+  goThrowsUsingAsyncs
+    :: ConduitT ByteString Void IO ()
+    -> ConduitT ByteString Void IO ()
+    -> Process
+         ()
+         (ConduitT () ByteString IO ())
+         (ConduitT () ByteString IO ())
+    -> IO CmdResult
+  goThrowsUsingAsyncs outSink errSink p =
+    withAsyncConduitsOnProcess
+        p
+        ConduitSpec {conduit = outSink, ccheck = filecheck out}
+        ConduitSpec {conduit = errSink, ccheck = filecheck err}
+        waitEither
+      >>= \case
+            Left  Clean   -> undefined
+            Right Clean   -> undefined
+            Left  Lacking -> OutputLacking c Err <$ stopProcess p
+            Right Lacking -> OutputLacking c Err <$ stopProcess p
+
+    {-| FoundAll-}
+    {-| FoundIllegal Cmd Std-}
+    {-| OutputLacking Cmd Std-}
+
+  goThrowsTimeoutUsingTheseSinks
+    :: ConduitT ByteString Void IO ()
+    -> ConduitT ByteString Void IO ()
+    -> IO CmdResult
+  goThrowsTimeoutUsingTheseSinks outSink errSink =
+    maybeTimeout timeout (withProcess pc $ goThrowsUsingAsyncs outSink errSink)
+      >>= \case --this case is associated with the timeout
+            Just r  -> undefined
+            Nothing -> return $ Timeout c
+
+  goThrowsTimeout :: IO CmdResult
+  goThrowsTimeout =
+    withConduitSinks (getfn out) (getfn err) goThrowsTimeoutUsingTheseSinks
+
+  forcedEnvVars :: [(Text, Text)]
+  forcedEnvVars = (\EnvVar {..} -> (toS varname, toS value)) <$> vars
+  externEnvVars :: [(Text, Text)]
+  externEnvVars = filter (\(k, _) -> k `elem` passvars) fullExternEnv
+  envVars :: [(Text, Text)]
+  envVars = DM.toList $ DMM.merge DMM.preserveMissing
+                                  DMM.preserveMissing
+                                  (DMM.zipWithMatched (\_ x _ -> x))
+                                  (DM.fromList forcedEnvVars)
+                                  (DM.fromList externEnvVars)
+
+  pc
+    :: ProcessConfig
+         ()
+         (ConduitM () ByteString IO ())
+         (ConduitM () ByteString IO ())
+  pc =
+    configureConduits
+      $ setEnv (mapTuple toS <$> envVars)
+      $ setWorkingDir (toS wd)
+      $ proc (toS name) (toS <$> args)
   getfn :: FileCheck Check -> Text
   getfn fc = wd <> "/" <> filename fc
+
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple = join (***)
+
+maybeTimeout :: Maybe Integer -> IO a -> IO (Maybe a)
+maybeTimeout i io = case i of
+  Nothing -> Just <$> io
+  Just t  -> ST.timeout (fromInteger t) io
 
 kbInstallHandler :: (MonadIO m) => IO () -> m Handler
 kbInstallHandler h = liftIO $ installHandler keyboardSignal (Catch h) Nothing
@@ -183,29 +299,31 @@ data ConduitSpec = ConduitSpec {
 }
 
 -- | withConduitSinks runs an IO action. It gives two conduit testing asyncs in scope.
+-- | THROWS PatternMatched
 withAsyncConduitsOnProcess
   :: Process () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
   -> ConduitSpec --stdout conduit spec
   -> ConduitSpec --stderr conduit spec
-  -> (Async TracebackScan -> Async TracebackScan -> IO b) -- the lambda-wrapped IO action
+  -> (Async ScanResult -> Async ScanResult -> IO b) -- the lambda-wrapped IO action
   -> IO b
 withAsyncConduitsOnProcess p cOut cErr = withAsyncs
   (doFilter (ccheck cOut) (getStdout p) (conduit cOut))
   (doFilter (ccheck cErr) (getStderr p) (conduit cErr))
  where
   withAsyncs
-    :: IO TracebackScan
-    -> IO TracebackScan
-    -> (Async TracebackScan -> Async TracebackScan -> IO b)
+    :: IO ScanResult
+    -> IO ScanResult
+    -> (Async ScanResult -> Async ScanResult -> IO b)
     -> IO b
   withAsyncs io1 io2 f =
     liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
 
+-- | THROWS PatternMatched
 doFilter
   :: Check
   -> ConduitT () ByteString IO ()
   -> ConduitT ByteString Void IO ()
-  -> IO TracebackScan
+  -> IO ScanResult
 doFilter behavior source sink =
   runConduit
     $              source
@@ -214,38 +332,35 @@ doFilter behavior source sink =
     `fuseUpstream` CC.unlinesAscii
     `fuseUpstream` sink
 
-makeBehavior :: Check -> ConduitT ByteString ByteString IO TracebackScan
+-- | makeBehavior builds an IO conduit that THROWS A PatternMatched.
+makeBehavior :: Check -> ConduitT ByteString ByteString IO ScanResult
 makeBehavior Check {..} = case wants of
   [] -> cleanLooper
   as -> expectfulLooper $ toS <$> as
  where
 
-  cleanLooper :: ConduitT ByteString ByteString IO TracebackScan
-  cleanLooper = noAvoidsAndOtherwise $ \b -> yield b >> cleanLooper
+  cleanLooper :: ConduitT ByteString ByteString IO ScanResult
+  cleanLooper = noAvoidsAndOtherwise Clean $ \b -> yield b >> cleanLooper
 
   expectfulLooper
-    :: [ByteString] -> ConduitT ByteString ByteString IO TracebackScan
-  expectfulLooper [] = throw PatternMatched
-  expectfulLooper l  = noAvoidsAndOtherwise $ \b -> yield b
+    :: [ByteString] -> ConduitT ByteString ByteString IO ScanResult
+  expectfulLooper [] = throw ThrowFoundAllWants
+  expectfulLooper l  = noAvoidsAndOtherwise Lacking $ \b -> yield b
     >> expectfulLooper (filter (\x -> not $ B.isInfixOf x b) (toS <$> l))
 
-  noAvoidsAndOtherwise otherwiseConduit = await >>= \case
-    Just b | any (`B.isInfixOf` b) (toS <$> avoids) -> throw PatternMatched
+  noAvoidsAndOtherwise endValue otherwiseConduit = await >>= \case
+    Just b | any (`B.isInfixOf` b) (toS <$> avoids) -> throw ThrowFoundAnAvoid
            | otherwise                              -> otherwiseConduit b
-    Nothing -> return Clean
+    Nothing -> return endValue
 
 configureConduits
-  :: Text
-  -> ProcessConfig () () ()
+  :: ProcessConfig () () ()
   -> ProcessConfig
        ()
        (ConduitM () ByteString IO ())
        (ConduitM () ByteString IO ())
-configureConduits wd p =
-  setStdout createSource
-    $ setStderr createSource
-    $ setStdin closed
-    $ setWorkingDir (toS wd) p
+configureConduits p =
+  setStdout createSource $ setStderr createSource $ setStdin closed p
 
 -- | runs an IO action with two conduits in lambda scope
 withConduitSinks

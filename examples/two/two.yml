@@ -1,0 +1,38 @@
+---
+pre:
+  - echo toto > ./prefile
+post:
+  - echo tata > ./postfile
+verbosity: null
+cmds:
+  - args:
+      - ./prefile
+    postchecks: null
+    name: cat
+    err:
+      filecheck:
+        wants: null
+        avoids: null
+      filename: toto.err
+    vars: null
+    out:
+      filecheck:
+        wants: null
+        avoids: null
+      filename: toto.out
+  - args:
+      - Error
+    postchecks: null
+    name: echo
+    err:
+      filecheck:
+        wants: null
+        avoids: null
+      filename: tata.err
+    vars: null
+    out:
+      filecheck:
+        wants: null
+        avoids: null
+      filename: tata.out
+workdir: ./_dhrun_out

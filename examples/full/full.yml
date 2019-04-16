@@ -1,7 +1,8 @@
 ---
 # list of commands to run
 cmds:
-  - args:
+  - name: touch
+    args:
       - hello
     postchecks:
       - filecheck:
@@ -20,7 +21,6 @@ cmds:
       filecheck:
         avoids: null
         wants: null
-    name: touch
     vars:
       - value: BAR
         varname: FOO

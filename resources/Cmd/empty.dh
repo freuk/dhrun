@@ -1,0 +1,21 @@
+    let emptyCheck = ./../Check/empty.dh
+
+in  let FileCheck = ./../FileCheck/FileCheck.dh
+
+in  let emptyVars = ./../EnvVar/empty.dh
+
+in    λ(args : { name : Text, outfile : Text, errfile : Text })
+    → { name =
+          args.name
+      , args =
+          [] : List Text
+      , out =
+          { filename = args.outfile, filecheck = emptyCheck }
+      , err =
+          { filename = args.errfile, filecheck = emptyCheck }
+      , postchecks =
+          [] : List FileCheck
+      , vars =
+          emptyVars
+      , passvars = [] : List Text
+      }

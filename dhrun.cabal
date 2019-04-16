@@ -23,9 +23,29 @@ executable dhrun
     base,
     protolude,
     dhrun-lib,
+    filepath,
     optparse-applicative,
     dhall
   default-language: Haskell2010
+  ghc-options:
+    -threaded
+    -Wall
+    -Wcompat
+    -Wincomplete-uni-patterns
+    -Wincomplete-record-updates
+    -Wmissing-home-modules
+    -Widentities
+    -Wredundant-constraints
+    -Wcpp-undef
+    -fwarn-tabs
+    -fwarn-unused-imports
+    -fwarn-missing-signatures
+    -fwarn-name-shadowing
+    -fprint-potential-instances
+    -Wmissing-export-lists
+    -fwarn-unused-do-bind
+    -fwarn-wrong-do-bind
+    -fwarn-incomplete-patterns
 
 library dhrun-lib
   hs-source-dirs: src
@@ -37,6 +57,7 @@ library dhrun-lib
     bytestring,
     conduit,
     unliftio-core,
+    containers,
     conduit-extra,
     unix,
     yaml,

@@ -1,6 +1,6 @@
-    let values = ./../resources/package.dh
+    let values = ./../../resources/package.dh
 
-in  let types = ./../resources/types.dh
+in  let types = ./../../resources/types.dh
 
 in  let config =
             { cmds =
@@ -14,8 +14,9 @@ in  let config =
                       { filename = "bar", filecheck = values.emptyCheck }
                   , postchecks =
                       [] : List types.FileCheck
-                  , env =
+                  , vars =
                       [] : List types.EnvVar
+                  , passvars = [] : List Text
                   }
                 ]
             , verbosity =

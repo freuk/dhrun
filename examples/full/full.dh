@@ -1,6 +1,6 @@
-    let values = ./../resources/package.dh
+    let values = ./../../resources/package.dh
 
-in  let types = ./../resources/types.dh
+in  let types = ./../../resources/types.dh
 
 in  let config =
             { cmds =
@@ -20,8 +20,9 @@ in  let config =
                             ⫽ { avoids = [ "Traceback", "Error" ] }
                         }
                       ]
-                  , env =
+                  , vars =
                       [ { varname = "FOO", value = "BAR" } ]
+                  , passvars = [] : List Text
                   }
                 ]
             , verbosity =

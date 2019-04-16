@@ -2,7 +2,6 @@
 {-# language DeriveFunctor #-}
 {-# language FlexibleInstances #-}
 {-# language FlexibleContexts #-}
-{-# language OverloadedStrings #-}
 {-# language LambdaCase #-}
 {-# language MultiParamTypeClasses #-}
 {-# language DerivingStrategies #-}
@@ -49,11 +48,11 @@ data Check = Check {
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
 
 data DhallExec = DhallExec
-  { cmds       :: [Cmd],
-    workdir    :: Text,
-    verbosity  :: Verbosity,
-    pre        :: [Text],
-    post       :: [Text]
+  { cmds      :: [Cmd],
+    workdir   :: Text,
+    verbosity :: Verbosity,
+    pre       :: [Text],
+    post      :: [Text]
   } deriving (Show, Eq, Generic, Interpret)
 
 data FileCheck a = FileCheck {
@@ -64,14 +63,16 @@ data FileCheck a = FileCheck {
 data Cmd = Cmd {
     name        :: Text
   , args        :: [Text]
-  , env         :: [EnvVar]
+  , vars        :: [EnvVar]
+  , passvars    :: [Text]
   , out         :: FileCheck Check
   , err         :: FileCheck Check
   , postchecks  :: [FileCheck Check]
+  , timeout     :: Maybe Integer
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
 
 inputDhallExec :: (MonadIO m) => Text -> m DhallExec
-inputDhallExec fn = liftIO $ try (input ft (fn <> ".dh")) >>= \case
+inputDhallExec fn = liftIO $ try (input ft fn) >>= \case
   Right d -> return d
   Left  e -> throwError e
  where

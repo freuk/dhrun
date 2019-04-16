@@ -4,4 +4,8 @@
     ./Verbosity/Verbose.dh
 , emptyCheck =
     ./Check/empty.dh
+, emptyVars =
+    ./EnvVar/empty.dh
+, emptyCmd =
+    ./Cmd/empty.dh
 }

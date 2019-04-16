@@ -18,9 +18,10 @@ Maintainer  : fre@freux.fr
 -}
 
 module Dhrun.AesonTypes
-  ( DhallExecParse(..)
+  ( DhallExec(..)
   , decodeDhallExec
   , encodeDhallExec
+  , encodeCmd
   , fromInternal
   , toInternal
   )
@@ -42,23 +43,25 @@ instance FromJSON CheckParse where
 instance FromJSON (DT.FileCheck CheckParse) where
     parseJSON = genericParseJSON defaultOptions { omitNothingFields  = True }
 
-data DhallExecParse = DhallExecParse
-  { cmds      :: [CmdParse],
+data DhallExec = DhallExec
+  { cmds      :: [Cmd],
     workdir   :: Maybe Text,
     verbosity :: Maybe DT.Verbosity,
     pre       :: Maybe [Text],
     post      :: Maybe [Text]
   } deriving (Eq, Show, Generic, FromJSON, ToJSON)
 
-data CmdParse = CmdParse {
+data Cmd = Cmd {
     name        :: Text
   , args        :: Maybe [Text]
   , vars        :: Maybe [DT.EnvVar]
-  , out      :: DT.FileCheck CheckParse
-  , err      :: DT.FileCheck CheckParse
+  , passvars    :: Maybe [Text]
+  , timeout     :: Maybe Integer
+  , out         :: DT.FileCheck CheckParse
+  , err         :: DT.FileCheck CheckParse
   , postchecks  :: Maybe [DT.FileCheck CheckParse]
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
-instance FromJSON CmdParse where
+instance FromJSON Cmd where
     parseJSON = genericParseJSON defaultOptions { omitNothingFields  = True }
 
 fromInternalCheck :: DT.Check -> CheckParse
@@ -75,19 +78,21 @@ toInternalCheck :: CheckParse -> DT.Check
 toInternalCheck cp =
   DT.Check {wants = fromMaybe [] (wants cp), avoids = fromMaybe [] (avoids cp)}
 
-toInternalCmd :: CmdParse -> DT.Cmd
+toInternalCmd :: Cmd -> DT.Cmd
 toInternalCmd c = DT.Cmd
   { name       = name c
   , args       = fromMaybe [] $ args c
-  , env        = fromMaybe [] $ vars c
+  , vars       = fromMaybe [] $ vars c
+  , passvars   = fromMaybe [] $ passvars c
   , out        = toInternalCheck <$> out c
   , err        = toInternalCheck <$> err c
   , postchecks = case postchecks c of
     (Just l) -> (toInternalCheck <$>) <$> l
     Nothing  -> []
+  , timeout    = timeout c
   }
 
-toInternal :: DhallExecParse -> DT.DhallExec
+toInternal :: DhallExec -> DT.DhallExec
 toInternal d = DT.DhallExec
   { cmds      = toInternalCmd <$> cmds d
   , verbosity = fromMaybe DT.Normal (verbosity d)
@@ -96,24 +101,28 @@ toInternal d = DT.DhallExec
   , workdir   = fromMaybe "./" (workdir d)
   }
 
-fromInternalCmd :: DT.Cmd -> CmdParse
-fromInternalCmd c = CmdParse {..}
+fromInternalCmd :: DT.Cmd -> Cmd
+fromInternalCmd c = Cmd {..}
  where
-  name = DT.name c
-  out  = fromInternalCheck <$> DT.out c
-  err  = fromInternalCheck <$> DT.err c
-  args = case DT.args c of
+  name    = DT.name c
+  out     = fromInternalCheck <$> DT.out c
+  err     = fromInternalCheck <$> DT.err c
+  timeout = DT.timeout c
+  args    = case DT.args c of
     [] -> Nothing
     l  -> Just l
-  vars = case DT.env c of
+  vars = case DT.vars c of
+    [] -> Nothing
+    l  -> Just l
+  passvars = case DT.passvars c of
     [] -> Nothing
     l  -> Just l
   postchecks = case DT.postchecks c of
     [] -> Nothing
     l  -> Just ((fromInternalCheck <$>) <$> l)
 
-fromInternal :: DT.DhallExec -> DhallExecParse
-fromInternal d = DhallExecParse {..}
+fromInternal :: DT.DhallExec -> DhallExec
+fromInternal d = DhallExec {..}
  where
   workdir = case DT.workdir d of
     "./" -> Nothing
@@ -130,11 +139,13 @@ fromInternal d = DhallExecParse {..}
     l  -> Just l
 
 decodeDhallExec :: (MonadIO m) => Text -> m DT.DhallExec
-decodeDhallExec fn =
-  liftIO $ try (decodeFileEither (toS $ fn <> ".yml")) >>= \case
-    Left  e          -> throwError e
-    Right (Left  pa) -> throwError $ userError $ "parse fail:" <> show pa
-    Right (Right a ) -> return $ toInternal a
+decodeDhallExec fn = liftIO $ try (decodeFileEither (toS fn)) >>= \case
+  Left  e          -> throwError e
+  Right (Left  pa) -> throwError $ userError $ "parse fail:" <> show pa
+  Right (Right a ) -> return $ toInternal a
 
 encodeDhallExec :: DT.DhallExec -> ByteString
 encodeDhallExec = Data.Yaml.encode . fromInternal
+
+encodeCmd :: DT.Cmd -> ByteString
+encodeCmd = Data.Yaml.encode . fromInternalCmd
