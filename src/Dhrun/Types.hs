@@ -68,7 +68,7 @@ data Cmd = Cmd {
   , out         :: FileCheck Check
   , err         :: FileCheck Check
   , postchecks  :: [FileCheck Check]
-  , timeout     :: Maybe Integer
+  , timeout     :: Maybe Natural
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
 
 inputDhallExec :: (MonadIO m) => Text -> m DhallExec

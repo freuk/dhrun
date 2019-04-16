@@ -24,6 +24,7 @@ cmds:
     vars:
       - value: BAR
         varname: FOO
+    timeout: 4
 # verbosity accepts Verbose and Normal
 verbosity: Verbose
 # pre-async setup commands

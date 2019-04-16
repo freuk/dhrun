@@ -20,4 +20,6 @@ in  { name :
         List EnvVar
     , passvars :
         List Text
+    , timeout :
+        Optional Natural
     }

@@ -56,7 +56,7 @@ data Cmd = Cmd {
   , args        :: Maybe [Text]
   , vars        :: Maybe [DT.EnvVar]
   , passvars    :: Maybe [Text]
-  , timeout     :: Maybe Integer
+  , timeout     :: Maybe Natural
   , out         :: DT.FileCheck CheckParse
   , err         :: DT.FileCheck CheckParse
   , postchecks  :: Maybe [DT.FileCheck CheckParse]

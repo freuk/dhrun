@@ -17,5 +17,8 @@ in    λ(args : { name : Text, outfile : Text, errfile : Text })
           [] : List FileCheck
       , vars =
           emptyVars
-      , passvars = [] : List Text
+      , passvars =
+          [] : List Text
+      , timeout =
+          [] : Optional Natural
       }

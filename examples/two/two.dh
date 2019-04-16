@@ -18,6 +18,8 @@ in  let config =
                       [] : List types.EnvVar
                   , passvars =
                       [] : List Text
+                  , timeout =
+                      [] : Optional Natural
                   }
                 , { name =
                       "echo"
@@ -33,6 +35,8 @@ in  let config =
                       [] : List types.EnvVar
                   , passvars =
                       [] : List Text
+                  , timeout =
+                      [] : Optional Natural
                   }
                 ]
             , verbosity =

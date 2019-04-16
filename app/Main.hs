@@ -16,7 +16,7 @@ module Main
 where
 
 import           Protolude
-import           Dhrun.Types
+import           Dhrun.Types                   as DT
 import           Dhrun.Run
 import           Dhrun.AesonTypes
 import           Options.Applicative           as OA
@@ -70,11 +70,11 @@ ext fn | xt `elem` [".dh", ".dhall"] = Just Dhall
        | otherwise                   = Nothing
   where xt = takeExtension $ toS fn
 
-load :: Common -> IO DhallExec
+load :: Common -> IO DT.DhallExec
 load c
   = (\x -> return x
-      { Dhrun.Types.verbosity =
-        if (Dhrun.Types.verbosity x == Verbose) || (Main.verbosity c == Verbose)
+      { DT.verbosity =
+        if (DT.verbosity x == Verbose) || (Main.verbosity c == Verbose)
           then Verbose
           else Normal
       }

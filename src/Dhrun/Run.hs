@@ -23,6 +23,7 @@ module Dhrun.Run
   )
 where
 
+import qualified Dhall
 import           Dhrun.Types
 import           Dhrun.AesonTypes               ( encodeCmd )
 import           Protolude
@@ -52,7 +53,6 @@ import           Control.Monad.IO.Unlift        ( MonadIO(..)
                                                 )
 import qualified Data.ByteString               as B
 import           Control.Exception.Base         ( Exception
-                                                , try
                                                 , throw
                                                 )
 import qualified System.Directory              as SD
@@ -71,6 +71,35 @@ import qualified Data.Map.Merge.Lazy           as DMM
 import           Control.Arrow                  ( (***) )
 import qualified System.Timeout                as ST
 
+data CmdResult =
+      Timeout Cmd
+    | DiedLegal
+    | DiedFailure Cmd Int
+    | FoundAll Cmd
+    | FoundIllegal Cmd Std
+    | OutputLacking Cmd Std
+    | ConduitException Cmd Std deriving (Show)
+
+data MonitoringResult =
+    ThrowFoundAllWants
+  | ThrowFoundAnAvoid
+  deriving (Show, Typeable)
+
+instance Exception MonitoringResult
+
+data ScanResult =  Clean | Lacking  deriving (Show)
+
+data Std = Out | Err deriving (Show)
+stdToS :: Std -> Text
+stdToS Out = "stdout"
+stdToS Err = "stderr"
+
+btw :: (Functor f) => (t -> f b) -> t -> f t
+btw k x = x <$ k x
+
+btwc :: (Functor f) => f b -> b1 -> f b1
+btwc m = btw (const m)
+
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
 runDhrun :: (MonadIO m) => DhallExec -> m ()
 runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
@@ -87,6 +116,9 @@ runAll = do
   runAsyncs
   runChecks
   runPost
+ where
+  runPre  = runMultipleV pre "pre-processing"
+  runPost = runMultipleV post "post-processing"
 
 putV :: (MonadIO m, MonadReader DhallExec m) => Text -> m ()
 putV text =
@@ -119,22 +151,6 @@ runChecks = (cmds <$> ask) >>= \case
         tell ["something"]
     putV "post-mortem checks: done"
 
-btw :: (Functor f) => (t -> f b) -> t -> f t
-btw k x = x <$ k x
-
-data Std = Out | Err
-stdToS :: Std -> Text
-stdToS Out = "stdout"
-stdToS Err = "stderr"
-
-data CmdResult =
-      Timeout Cmd
-    | AllDiedLegal
-    | DiedFailure Cmd Int
-    | FoundAll Cmd
-    | FoundIllegal Cmd Std
-    | OutputLacking Cmd Std
-
 runAsyncs :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
 runAsyncs = (cmds <$> ask) >>= \case
   [] -> putV "async step: no processes."
@@ -156,7 +172,7 @@ runAsyncs = (cmds <$> ask) >>= \case
           <> show n
           <> " :"
           :  T.lines (toS $ encodeCmd c)
-      AllDiedLegal -> putText "All commands exited successfully."
+      DiedLegal -> putText "All commands exited successfully."
       FoundAll c ->
         putText
           $ "All searched patterns the following command were found. Killing all processes."
@@ -173,16 +189,17 @@ runAsyncs = (cmds <$> ask) >>= \case
           <> stdToS e
           <> " was found to be lacking pattern(s):"
           :  T.lines (toS $ encodeCmd c)
+      ConduitException c e ->
+        tell
+          $  "This process' "
+          <> stdToS e
+          <> " ended with a conduit exception:"
+          :  T.lines (toS $ encodeCmd c)
     putV "async step: done"
  where
   mkAsyncs :: [Cmd] -> [(Text, Text)] -> Text -> IO [Async CmdResult]
   mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
 
-runPre :: (MonadIO m, MonadReader DhallExec m) => m ()
-runPre = runMultipleV pre "pre-processing"
-
-runPost :: (MonadIO m, MonadReader DhallExec m) => m ()
-runPost = runMultipleV post "post-processing"
 
 runMultipleV
   :: (MonadIO m, MonadReader DhallExec m)
@@ -202,23 +219,8 @@ runMultipleV getter desc = getter <$> ask >>= \case
             liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
     putV $ desc <> ": done"
 
-data MonitoringResult =
-    ThrowFoundAllWants
-  | ThrowFoundAnAvoid
-  deriving (Show, Typeable)
-instance Exception MonitoringResult
-data ScanResult =  Clean | Lacking  deriving (Show)
-
-runCmd
-  :: [(Text, Text)] -- | external environment
-  -> Text -- | workDir
-  -> Cmd
-  -> IO CmdResult
-
-runCmd fullExternEnv wd c@Cmd {..} = try goThrowsTimeout >>= \case
-  Left  ThrowFoundAllWants -> return $ FoundAll c
-  Left  ThrowFoundAnAvoid -> return undefined
-  Right r                    -> return r
+runCmd :: [(Text, Text)] -> Text -> Cmd -> IO CmdResult
+runCmd fullExternEnv wd c@Cmd {..} = goThrowsTimeout
  where
   goThrowsUsingAsyncs
     :: ConduitT ByteString Void IO ()
@@ -233,26 +235,31 @@ runCmd fullExternEnv wd c@Cmd {..} = try goThrowsTimeout >>= \case
         p
         ConduitSpec {conduit = outSink, ccheck = filecheck out}
         ConduitSpec {conduit = errSink, ccheck = filecheck err}
-        waitEither
-      >>= \case
-            Left  Clean   -> undefined
-            Right Clean   -> undefined
-            Left  Lacking -> OutputLacking c Err <$ stopProcess p
-            Right Lacking -> OutputLacking c Err <$ stopProcess p
-
-    {-| FoundAll-}
-    {-| FoundIllegal Cmd Std-}
-    {-| OutputLacking Cmd Std-}
+        waitEitherCatch
+      >>= btwc (stopProcess p)
+      >>= return
+      <$> \case
+            Left  (Right Clean  ) -> DiedLegal
+            Right (Right Clean  ) -> DiedLegal
+            Left  (Right Lacking) -> OutputLacking c Out
+            Right (Right Lacking) -> OutputLacking c Err
+            Left  (Left  e      ) -> case fromException e of
+              Just ThrowFoundAnAvoid  -> FoundIllegal c Out
+              Just ThrowFoundAllWants -> FoundAll c
+              Nothing                 -> ConduitException c Out
+            Right (Left e) -> case fromException e of
+              Just ThrowFoundAnAvoid  -> FoundIllegal c Err
+              Just ThrowFoundAllWants -> FoundAll c
+              Nothing                 -> ConduitException c Err
 
   goThrowsTimeoutUsingTheseSinks
     :: ConduitT ByteString Void IO ()
     -> ConduitT ByteString Void IO ()
     -> IO CmdResult
   goThrowsTimeoutUsingTheseSinks outSink errSink =
-    maybeTimeout timeout (withProcess pc $ goThrowsUsingAsyncs outSink errSink)
-      >>= \case --this case is associated with the timeout
-            Just r  -> undefined
-            Nothing -> return $ Timeout c
+    fromMaybe (Timeout c) <$> maybeTimeout
+      timeout
+      (withProcess pc $ goThrowsUsingAsyncs outSink errSink)
 
   goThrowsTimeout :: IO CmdResult
   goThrowsTimeout =
@@ -285,10 +292,10 @@ runCmd fullExternEnv wd c@Cmd {..} = try goThrowsTimeout >>= \case
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple = join (***)
 
-maybeTimeout :: Maybe Integer -> IO a -> IO (Maybe a)
+maybeTimeout :: Maybe Dhall.Natural -> IO a -> IO (Maybe a)
 maybeTimeout i io = case i of
   Nothing -> Just <$> io
-  Just t  -> ST.timeout (fromInteger t) io
+  Just t  -> ST.timeout (fromInteger $ toInteger t) io
 
 kbInstallHandler :: (MonadIO m) => IO () -> m Handler
 kbInstallHandler h = liftIO $ installHandler keyboardSignal (Catch h) Nothing

@@ -22,7 +22,10 @@ in  let config =
                       ]
                   , vars =
                       [ { varname = "FOO", value = "BAR" } ]
-                  , passvars = [] : List Text
+                  , passvars =
+                      [] : List Text
+                  , timeout =
+                      [ 4 ] : Optional Natural
                   }
                 ]
             , verbosity =

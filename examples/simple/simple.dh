@@ -16,7 +16,9 @@ in  let config =
                       [] : List types.FileCheck
                   , vars =
                       [] : List types.EnvVar
-                  , passvars = [] : List Text
+                  , passvars =
+                      [] : List Text
+                  , timeout = [] : Optional Natural
                   }
                 ]
             , verbosity =
