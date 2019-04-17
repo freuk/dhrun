@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-
 {-# LANGUAGE NoImplicitPrelude #-}
 
 {-|
@@ -40,7 +39,9 @@ data Common = Common
 commonParser :: Parser Common
 commonParser =
   Common
-    <$> strArgument (metavar "INPUT" <> help "input dhall configuration")
+    <$> (("./" <>) <$> strArgument
+          (metavar "INPUT" <> help "input dhall configuration")
+        )
     <*> flag Normal
              Verbose
              (long "verbose" <> short 'v' <> help "Enable verbose mode")

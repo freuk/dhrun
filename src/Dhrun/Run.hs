@@ -111,8 +111,8 @@ runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
   ((), []) -> liftIO $ putText
     "Success. No errors were encountered and all requirements were met."
   ((), errors) -> liftIO $ do
-    putText "Failure. The following errors were encountered:"
-    for_ errors Protolude.print
+    putText "Failure. Error log:"
+    for_ errors Protolude.putText
     die "exiting."
 
 runAll :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
