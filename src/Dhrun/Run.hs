@@ -300,7 +300,7 @@ mapTuple = join (***)
 maybeTimeout :: Maybe Int -> IO a -> IO (Maybe a)
 maybeTimeout i io = case i of
   Nothing -> Just <$> io
-  Just t  -> ST.timeout t io
+  Just t  -> ST.timeout (100000 * t) io
 
 kbInstallHandler :: (MonadIO m) => IO () -> m Handler
 kbInstallHandler h = liftIO $ installHandler keyboardSignal (Catch h) Nothing
