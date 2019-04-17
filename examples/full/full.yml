@@ -26,7 +26,7 @@ cmds:
         varname: FOO
     timeout: 4
 # verbosity accepts Verbose and Normal
-verbosity: Verbose
+verbose: False 
 # pre-async setup commands
 pre:
   - echo "preparing!"

@@ -17,13 +17,12 @@ Maintainer  : fre@freux.fr
 -}
 
 module Dhrun.Types
-  ( Verbosity(..)
-  , DhallExec(..)
+  ( Cfg(..)
   , Cmd(..)
   , EnvVar(..)
   , Check(..)
   , FileCheck(..)
-  , inputDhallExec
+  , inputCfg
   )
 where
 
@@ -31,9 +30,6 @@ import           Protolude
 import           Dhall
 import           Data.Yaml
 import           Data.Aeson
-
-data Verbosity = Normal | Verbose
-  deriving (Read, Show, Eq, Generic, FromJSON, ToJSON, Interpret)
 
 data EnvVar = EnvVar {
     varname :: Text
@@ -47,10 +43,10 @@ data Check = Check {
   , wants  :: [Text]
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
 
-data DhallExec = DhallExec
+data Cfg = Cfg
   { cmds      :: [Cmd],
     workdir   :: Text,
-    verbosity :: Verbosity,
+    verbose   :: Bool,
     pre       :: [Text],
     post      :: [Text]
   } deriving (Show, Eq, Generic, Interpret)
@@ -71,10 +67,10 @@ data Cmd = Cmd {
   , timeout     :: Maybe Natural
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
 
-inputDhallExec :: (MonadIO m) => Text -> m DhallExec
-inputDhallExec fn = liftIO $ try (input ft fn) >>= \case
+inputCfg :: (MonadIO m) => Text -> m Cfg
+inputCfg fn = liftIO $ try (input ft fn) >>= \case
   Right d -> return d
   Left  e -> throwError e
  where
-  ft :: Dhall.Type DhallExec
+  ft :: Dhall.Type Cfg
   ft = Dhall.auto

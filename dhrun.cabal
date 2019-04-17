@@ -49,7 +49,7 @@ executable dhrun
 
 library dhrun-lib
   hs-source-dirs: src
-  exposed-modules: Dhrun.Types, Dhrun.AesonTypes, Dhrun.Run
+  exposed-modules: Dhrun.Internal, Dhrun.Types, Dhrun.AesonTypes, Dhrun.Run
   build-depends:
     base,
     protolude,

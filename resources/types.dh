@@ -1,6 +1,4 @@
-{ Verbosity =
-    ./Verbosity/Verbosity.dh
-, Cmd =
+{ Cmd =
     ./Cmd/Cmd.dh
 , EnvVar =
     ./EnvVar/EnvVar.dh

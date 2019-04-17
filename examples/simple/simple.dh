@@ -21,8 +21,7 @@ in  let config =
                   , timeout = [] : Optional Natural
                   }
                 ]
-            , verbosity =
-                values.Normal
+            , verbose = False
             , workdir =
                 "./"
             , pre =

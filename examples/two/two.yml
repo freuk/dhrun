@@ -3,7 +3,7 @@ pre:
   - echo toto > ./prefile
 post:
   - echo tata > ./postfile
-verbosity: null
+verbose: False
 cmds:
   - args:
       - ./prefile

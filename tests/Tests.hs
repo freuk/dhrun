@@ -30,12 +30,12 @@ testDY :: (MonadIO m, MonadWriter [Text] m) => Text -> m Result
 testDY fn = do
 
   tell ["loading " <> fn <> ".yml:"]
-  loadedY <- decodeDhallExec $ "./examples/" <> fn <> "/" <> fn <> ".yml"
-  for_ (lines $ encodeDhallExec loadedY) $ \x -> tell [toS x]
+  loadedY <- decodeCfg $ "./examples/" <> fn <> "/" <> fn <> ".yml"
+  for_ (lines $ encodeCfg loadedY) $ \x -> tell [toS x]
 
   tell ["loading " <> fn <> ".dh:"]
-  loadedD <- inputDhallExec $ "./examples/" <> fn <> "/" <> fn <> ".dh"
-  for_ (lines $ encodeDhallExec loadedD) $ \x -> tell [toS x]
+  loadedD <- inputCfg $ "./examples/" <> fn <> "/" <> fn <> ".dh"
+  for_ (lines $ encodeCfg loadedD) $ \x -> tell [toS x]
 
   if loadedY == loadedD
     then tell ["success."] >> return Success

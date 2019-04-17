@@ -10,7 +10,7 @@
 {-# language NoImplicitPrelude #-}
 
 {-|
-Module      : Dhrun.Types
+Module      : Dhrun.AesonTypes
 Description : types
 Copyright   : (c) Valentin Reis, 2018
 License     : MIT
@@ -18,9 +18,9 @@ Maintainer  : fre@freux.fr
 -}
 
 module Dhrun.AesonTypes
-  ( DhallExec(..)
-  , decodeDhallExec
-  , encodeDhallExec
+  ( Cfg(..)
+  , decodeCfg
+  , encodeCfg
   , encodeCmd
   , fromInternal
   , toInternal
@@ -43,10 +43,10 @@ instance FromJSON CheckParse where
 instance FromJSON (DT.FileCheck CheckParse) where
     parseJSON = genericParseJSON defaultOptions { omitNothingFields  = True }
 
-data DhallExec = DhallExec
+data Cfg = Cfg
   { cmds      :: [Cmd],
     workdir   :: Maybe Text,
-    verbosity :: Maybe DT.Verbosity,
+    verbose   :: Maybe Bool,
     pre       :: Maybe [Text],
     post      :: Maybe [Text]
   } deriving (Eq, Show, Generic, FromJSON, ToJSON)
@@ -92,10 +92,10 @@ toInternalCmd c = DT.Cmd
   , timeout    = timeout c
   }
 
-toInternal :: DhallExec -> DT.DhallExec
-toInternal d = DT.DhallExec
+toInternal :: Cfg -> DT.Cfg
+toInternal d = DT.Cfg
   { cmds      = toInternalCmd <$> cmds d
-  , verbosity = fromMaybe DT.Normal (verbosity d)
+  , verbose   = fromMaybe False (verbose d)
   , pre       = fromMaybe [] (pre d)
   , post      = fromMaybe [] (post d)
   , workdir   = fromMaybe "./" (workdir d)
@@ -121,31 +121,29 @@ fromInternalCmd c = Cmd {..}
     [] -> Nothing
     l  -> Just ((fromInternalCheck <$>) <$> l)
 
-fromInternal :: DT.DhallExec -> DhallExec
-fromInternal d = DhallExec {..}
+fromInternal :: DT.Cfg -> Cfg
+fromInternal d = Cfg {..}
  where
   workdir = case DT.workdir d of
     "./" -> Nothing
     w    -> Just w
   cmds      = fromInternalCmd <$> DT.cmds d
-  verbosity = case DT.verbosity d of
-    DT.Normal  -> Nothing
-    DT.Verbose -> Just DT.Normal
-  pre = case DT.pre d of
+  verbose   = if DT.verbose d then Just True else Nothing
+  pre       = case DT.pre d of
     [] -> Nothing
     l  -> Just l
   post = case DT.post d of
     [] -> Nothing
     l  -> Just l
 
-decodeDhallExec :: (MonadIO m) => Text -> m DT.DhallExec
-decodeDhallExec fn = liftIO $ try (decodeFileEither (toS fn)) >>= \case
+decodeCfg :: (MonadIO m) => Text -> m DT.Cfg
+decodeCfg fn = liftIO $ try (decodeFileEither (toS fn)) >>= \case
   Left  e          -> throwError e
   Right (Left  pa) -> throwError $ userError $ "parse fail:" <> show pa
   Right (Right a ) -> return $ toInternal a
 
-encodeDhallExec :: DT.DhallExec -> ByteString
-encodeDhallExec = Data.Yaml.encode . fromInternal
+encodeCfg :: DT.Cfg -> ByteString
+encodeCfg = Data.Yaml.encode . fromInternal
 
 encodeCmd :: DT.Cmd -> ByteString
 encodeCmd = Data.Yaml.encode . fromInternalCmd

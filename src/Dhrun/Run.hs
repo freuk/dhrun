@@ -1,5 +1,4 @@
 {-# language DerivingStrategies #-}
-
 {-# language FlexibleContexts #-}
 {-# language LambdaCase #-}
 {-# language RecordWildCards #-}
@@ -23,9 +22,7 @@ module Dhrun.Run
   )
 where
 
-import qualified Dhall
-import           Dhrun.Types
-import           Dhrun.AesonTypes               ( encodeCmd )
+import           Dhrun.Internal
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
 import           Data.Conduit
@@ -97,11 +94,19 @@ stdToS Err = "stderr"
 btw :: (Functor f) => (t -> f b) -> t -> f t
 btw k x = x <$ k x
 
+(>>!) :: (Monad m) => m a -> (a -> m b) -> m a
+(!<<) :: (Monad m) => (a -> m b) -> m a -> m a
+k >>! x = k >>= btw x
+(!<<) = flip (>>!)
+
+infixr 7 >>!
+infixl 0 !<<
+
 btwc :: (Functor f) => f b -> b1 -> f b1
 btwc m = btw (const m)
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
-runDhrun :: (MonadIO m) => DhallExec -> m ()
+runDhrun :: (MonadIO m) => Cfg -> m ()
 runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
   ((), []) -> liftIO $ putText
     "Success. No errors were encountered and all requirements were met."
@@ -110,57 +115,57 @@ runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
     for_ errors Protolude.print
     die "exiting."
 
-runAll :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
+runAll :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAll = do
   runPre
   runAsyncs
   runChecks
   runPost
  where
-  runPre  = runMultipleV pre "pre-processing"
-  runPost = runMultipleV post "post-processing"
+  runPre  = runMultipleV ((toS <$>) <$> pre) "pre-processing"
+  runPost = runMultipleV ((toS <$>) <$> post) "post-processing"
 
-putV :: (MonadIO m, MonadReader DhallExec m) => Text -> m ()
+putV :: (MonadIO m, MonadReader Cfg m) => Text -> m ()
 putV text =
   (== Verbose) . verbosity <$> ask >>= flip when (liftIO $ putText text)
 
-runChecks :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
+runChecks :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runChecks = (cmds <$> ask) >>= \case
   [] -> putV "post-mortem check step: no processes."
   l  -> do
     putV "post-mortem checks: start"
     for_ l $ \Cmd {..} -> do
-      putV $ "running post-mortem checks for " <> name <> " " <> mconcat
-        (intersperse " " args)
+      putV $ "running post-mortem checks for " <> toS name <> " " <> mconcat
+        (intersperse " " (toS <$> args))
       for_ postchecks $ \FileCheck {..} -> do
         contents <- liftIO $ readFile (toS filename)
-        forM_ (wants filecheck) $ \x -> unless
+        forM_ (wants filecheck) $ \(Pattern x) -> unless
           (T.isInfixOf x contents)
           (tell
             [ "post-mortem check fail: "
               <> x
               <> " not found in file "
-              <> filename
+              <> toS filename
             ]
           )
-        forM_ (avoids filecheck) $ \x -> when
+        forM_ (avoids filecheck) $ \(Pattern x) -> when
           (T.isInfixOf x contents)
           (tell
-            ["post-mortem check fail: " <> x <> " found in file " <> filename]
+            ["post-mortem check fail: " <> x <> " found in file " <> toS filename]
           )
         tell ["something"]
     putV "post-mortem checks: done"
 
-runAsyncs :: (MonadIO m, MonadReader DhallExec m, MonadWriter [Text] m) => m ()
+runAsyncs :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAsyncs = (cmds <$> ask) >>= \case
   [] -> putV "async step: no processes."
   l  -> do
     putV "async step: start"
-    wd <- toS . workdir <$> ask >>= btw
-      (liftIO . SD.createDirectoryIfMissing False)
+    wd@(WorkDir wdText) <- ask <&> workdir
+    createIfMissing wdText
     externEnv <- (\lenv -> (\(n, v) -> (toS n, toS v)) <$> lenv)
       <$> liftIO SE.getEnvironment
-    asyncs <- liftIO $ mkAsyncs l externEnv $ toS wd
+    asyncs <- liftIO $ mkAsyncs l externEnv wd
     _      <- liftIO $ kbInstallHandler $ for_ asyncs cancel
     putV "processes started."
     liftIO (waitAnyCancel asyncs) >>= \(_, x) -> case x of
@@ -197,30 +202,30 @@ runAsyncs = (cmds <$> ask) >>= \case
           :  T.lines (toS $ encodeCmd c)
     putV "async step: done"
  where
-  mkAsyncs :: [Cmd] -> [(Text, Text)] -> Text -> IO [Async CmdResult]
+  mkAsyncs :: [Cmd] -> [(Text, Text)] -> WorkDir -> IO [Async CmdResult]
   mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
 
+createIfMissing :: (MonadIO m) => Text -> m ()
+createIfMissing fp = liftIO . SD.createDirectoryIfMissing False $ toS fp
 
 runMultipleV
-  :: (MonadIO m, MonadReader DhallExec m)
-  => (DhallExec -> [Text])
-  -> Text
-  -> m ()
+  :: (MonadIO m, MonadReader Cfg m) => (Cfg -> [Text]) -> Text -> m ()
 runMultipleV getter desc = getter <$> ask >>= \case
   [] -> putV $ "no " <> desc <> " commands to run."
   l  -> do
     putV $ desc <> ": start"
-    wd <- toS . workdir <$> ask >>= btw
-      (liftIO . SD.createDirectoryIfMissing False)
-    for_ l
-      $ \x -> liftIO (runProcess $ setWorkingDir wd (shell $ toS x)) >>= \case
-          ExitSuccess -> putV ("ran one " <> desc <> " command.")
-          ExitFailure _ ->
-            liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
+    wdirFP <- createIfMissing !<< ask <&> workdir <&> \(WorkDir wdt) -> wdt
+    for_ l $ runOne wdirFP
     putV $ desc <> ": done"
+ where
+  runOne wdirFP x =
+    liftIO (runProcess $ setWorkingDir (toS wdirFP) (shell $ toS x)) >>= \case
+      ExitSuccess -> putV ("ran one " <> desc <> " command.")
+      ExitFailure _ ->
+        liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
 
-runCmd :: [(Text, Text)] -> Text -> Cmd -> IO CmdResult
-runCmd fullExternEnv wd c@Cmd {..} = goThrowsTimeout
+runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
+runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = goThrowsTimeout
  where
   goThrowsUsingAsyncs
     :: ConduitT ByteString Void IO ()
@@ -268,7 +273,7 @@ runCmd fullExternEnv wd c@Cmd {..} = goThrowsTimeout
   forcedEnvVars :: [(Text, Text)]
   forcedEnvVars = (\EnvVar {..} -> (toS varname, toS value)) <$> vars
   externEnvVars :: [(Text, Text)]
-  externEnvVars = filter (\(k, _) -> k `elem` passvars) fullExternEnv
+  externEnvVars = filter (\(k, _) -> k `elem` (toS <$> passvars)) fullExternEnv
   envVars :: [(Text, Text)]
   envVars = DM.toList $ DMM.merge DMM.preserveMissing
                                   DMM.preserveMissing
@@ -287,15 +292,15 @@ runCmd fullExternEnv wd c@Cmd {..} = goThrowsTimeout
       $ setWorkingDir (toS wd)
       $ proc (toS name) (toS <$> args)
   getfn :: FileCheck Check -> Text
-  getfn fc = wd <> "/" <> filename fc
+  getfn fc = wd <> "/" <> toS (filename fc)
 
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple = join (***)
 
-maybeTimeout :: Maybe Dhall.Natural -> IO a -> IO (Maybe a)
+maybeTimeout :: Maybe Int -> IO a -> IO (Maybe a)
 maybeTimeout i io = case i of
   Nothing -> Just <$> io
-  Just t  -> ST.timeout (fromInteger $ toInteger t) io
+  Just t  -> ST.timeout t io
 
 kbInstallHandler :: (MonadIO m) => IO () -> m Handler
 kbInstallHandler h = liftIO $ installHandler keyboardSignal (Catch h) Nothing

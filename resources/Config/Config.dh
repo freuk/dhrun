@@ -6,8 +6,8 @@ in  let Cmd = ../Cmd/Cmd.dh
 
 in  { cmds :
         List Cmd
-    , verbosity :
-        Verbosity
+    , verbose :
+        Bool
     , workdir :
         Text
     , pre :

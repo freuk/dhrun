@@ -39,8 +39,7 @@ in  let config =
                       [] : Optional Natural
                   }
                 ]
-            , verbosity =
-                values.Normal
+            , verbose = False
             , workdir =
                 "./_dhrun_out"
             , pre =

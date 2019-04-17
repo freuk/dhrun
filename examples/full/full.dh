@@ -28,8 +28,7 @@ in  let config =
                       [ 4 ] : Optional Natural
                   }
                 ]
-            , verbosity =
-                values.Verbose
+            , verbose = False
             , workdir =
                 "/tmp/dhrun_wd" : Text
             , pre =
