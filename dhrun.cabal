@@ -22,6 +22,7 @@ executable dhrun
   build-depends:
     base,
     protolude,
+    directory,
     dhrun-lib,
     filepath,
     optparse-applicative,

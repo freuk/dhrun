@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
 {-|
@@ -21,6 +22,7 @@ import           Dhrun.Run                     as DR
 import           Options.Applicative           as OA
 import           Dhall
 import           System.FilePath.Posix
+import           System.Directory
 
 main :: IO ()
 main = join . customExecParser (prefs showHelpOnError) $ info
@@ -39,9 +41,7 @@ data Common = Common
 commonParser :: Parser Common
 commonParser =
   Common
-    <$> (("./" <>) <$> strArgument
-          (metavar "INPUT" <> help "input dhall configuration")
-        )
+    <$> strArgument (metavar "INPUT" <> help "input dhall configuration")
     <*> flag Normal
              Verbose
              (long "verbose" <> short 'v' <> help "Enable verbose mode")
@@ -68,19 +68,18 @@ ext fn | xt `elem` [".dh", ".dhall"] = Just Dhall
   where xt = takeExtension $ toS fn
 
 load :: Common -> IO Cfg
-load c = overrideV <$> case ext (inputfile c) of
-  (Just Dhall) ->
-    (if Main.verbosity c == Verbose then detailed else identity)
-      $ inputCfg
-      $ inputfile c
-  (Just Yaml) -> decodeCfg $ inputfile c
-  Nothing     -> die $ "couldn't figure out extension for file " <> inputfile c
+load Common {..} = do
+  infile <- toS <$> makeAbsolute (toS inputfile)
+  overrideV <$> case ext infile of
+    (Just Dhall) -> (if v then detailed else identity) $ inputCfg infile
+    (Just Yaml ) -> decodeCfg infile
+    Nothing      -> die $ "couldn't figure out extension for file " <> infile
  where
+  v = verbosity == Verbose
   overrideV x = x
-    { DI.verbosity =
-      if (DI.verbosity x == Verbose) || (Main.verbosity c == Verbose)
-        then Verbose
-        else Normal
+    { DI.verbosity = if (DI.verbosity x == Verbose) || v
+                       then Verbose
+                       else Normal
     }
 
 run :: Common -> IO ()
