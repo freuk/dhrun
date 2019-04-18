@@ -102,8 +102,8 @@ k >>! x = k >>= btw x
 infixr 7 >>!
 infixl 0 !<<
 
-btwc :: (Functor f) => f b -> b1 -> f b1
-btwc m = btw (const m)
+{-btwc :: (Functor f) => f b -> b1 -> f b1-}
+{-btwc m = btw (const m)-}
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
 runDhrun :: (MonadIO m) => Cfg -> m ()
@@ -151,7 +151,11 @@ runChecks = (cmds <$> ask) >>= \case
         forM_ (avoids filecheck) $ \(Pattern x) -> when
           (T.isInfixOf x contents)
           (tell
-            ["post-mortem check fail: " <> x <> " found in file " <> toS filename]
+            [ "post-mortem check fail: "
+              <> x
+              <> " found in file "
+              <> toS filename
+            ]
           )
         tell ["something"]
     putV "post-mortem checks: done"
@@ -235,27 +239,27 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = goThrowsTimeout
          (ConduitT () ByteString IO ())
          (ConduitT () ByteString IO ())
     -> IO CmdResult
-  goThrowsUsingAsyncs outSink errSink p =
-    withAsyncConduitsOnProcess
-        p
-        ConduitSpec {conduit = outSink, ccheck = filecheck out}
-        ConduitSpec {conduit = errSink, ccheck = filecheck err}
-        waitEitherCatch
-      >>= btwc (stopProcess p)
-      >>= return
-      <$> \case
-            Left  (Right Clean  ) -> DiedLegal
-            Right (Right Clean  ) -> DiedLegal
-            Left  (Right Lacking) -> OutputLacking c Out
-            Right (Right Lacking) -> OutputLacking c Err
-            Left  (Left  e      ) -> case fromException e of
-              Just ThrowFoundAnAvoid  -> FoundIllegal c Out
-              Just ThrowFoundAllWants -> FoundAll c
-              Nothing                 -> ConduitException c Out
-            Right (Left e) -> case fromException e of
-              Just ThrowFoundAnAvoid  -> FoundIllegal c Err
-              Just ThrowFoundAllWants -> FoundAll c
-              Nothing                 -> ConduitException c Err
+  goThrowsUsingAsyncs outSink errSink p = do
+    conduitOutput <- withAsyncConduitsOnProcess
+      p
+      ConduitSpec {conduit = outSink, ccheck = filecheck out}
+      ConduitSpec {conduit = errSink, ccheck = filecheck err}
+      waitEitherCatch
+    processOutput <- waitExitCode p
+    return $ case (processOutput, conduitOutput) of
+      (ExitFailure n, _                    ) -> DiedFailure c n
+      (ExitSuccess  , Left (Right Clean)   ) -> DiedLegal
+      (ExitSuccess  , Right (Right Clean)  ) -> DiedLegal
+      (ExitSuccess  , Left (Right Lacking) ) -> OutputLacking c Out
+      (ExitSuccess  , Right (Right Lacking)) -> OutputLacking c Err
+      (ExitSuccess  , Left (Left e)        ) -> case fromException e of
+        Just ThrowFoundAnAvoid  -> FoundIllegal c Out
+        Just ThrowFoundAllWants -> FoundAll c
+        Nothing                 -> ConduitException c Out
+      (ExitSuccess, Right (Left e)) -> case fromException e of
+        Just ThrowFoundAnAvoid  -> FoundIllegal c Err
+        Just ThrowFoundAllWants -> FoundAll c
+        Nothing                 -> ConduitException c Err
 
   goThrowsTimeoutUsingTheseSinks
     :: ConduitT ByteString Void IO ()
