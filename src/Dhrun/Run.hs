@@ -43,6 +43,7 @@ import qualified System.IO                     as SIO
                                                 , hSetBuffering
                                                 , withBinaryFile
                                                 , IOMode(WriteMode)
+                                                , stdout
                                                 )
 
 import           Control.Monad.IO.Unlift        ( MonadIO(..)
@@ -117,6 +118,7 @@ runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
 
 runAll :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAll = do
+  liftIO $ SIO.hSetBuffering SIO.stdout SIO.NoBuffering
   runPre
   runAsyncs
   runChecks
@@ -228,6 +230,7 @@ runMultipleV getter desc = getter <$> ask >>= \case
       ExitFailure _ ->
         liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
 
+data ProcessWas = Died ExitCode | Killed
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = goThrowsTimeout
  where
@@ -244,19 +247,21 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = goThrowsTimeout
       p
       ConduitSpec {conduit = outSink, ccheck = filecheck out}
       ConduitSpec {conduit = errSink, ccheck = filecheck err}
-      waitEitherCatch
-    processOutput <- waitExitCode p
+      waitEitherCatchCancel
+    processOutput <- getExitCode p >>= \case
+      Just ec -> return $ Died ec
+      Nothing -> stopProcess p >> return Killed
     return $ case (processOutput, conduitOutput) of
-      (ExitFailure n, _                    ) -> DiedFailure c n
-      (ExitSuccess  , Left (Right Clean)   ) -> DiedLegal
-      (ExitSuccess  , Right (Right Clean)  ) -> DiedLegal
-      (ExitSuccess  , Left (Right Lacking) ) -> OutputLacking c Out
-      (ExitSuccess  , Right (Right Lacking)) -> OutputLacking c Err
-      (ExitSuccess  , Left (Left e)        ) -> case fromException e of
+      (Died (ExitFailure n), _                    ) -> DiedFailure c n
+      (_                   , Left (Right Clean)   ) -> DiedLegal
+      (_                   , Right (Right Clean)  ) -> DiedLegal
+      (_                   , Left (Right Lacking) ) -> OutputLacking c Out
+      (_                   , Right (Right Lacking)) -> OutputLacking c Err
+      (_                   , Left (Left e)        ) -> case fromException e of
         Just ThrowFoundAnAvoid  -> FoundIllegal c Out
         Just ThrowFoundAllWants -> FoundAll c
         Nothing                 -> ConduitException c Out
-      (ExitSuccess, Right (Left e)) -> case fromException e of
+      (_, Right (Left e)) -> case fromException e of
         Just ThrowFoundAnAvoid  -> FoundIllegal c Err
         Just ThrowFoundAllWants -> FoundAll c
         Nothing                 -> ConduitException c Err
@@ -318,8 +323,8 @@ data ConduitSpec = ConduitSpec {
 -- | THROWS PatternMatched
 withAsyncConduitsOnProcess
   :: Process () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
-  -> ConduitSpec --stdout conduit spec
-  -> ConduitSpec --stderr conduit spec
+  -> ConduitSpec -- stdout conduit spec
+  -> ConduitSpec -- stderr conduit spec
   -> (Async ScanResult -> Async ScanResult -> IO b) -- the lambda-wrapped IO action
   -> IO b
 withAsyncConduitsOnProcess p cOut cErr = withAsyncs
@@ -361,8 +366,10 @@ makeBehavior Check {..} = case wants of
   expectfulLooper
     :: [ByteString] -> ConduitT ByteString ByteString IO ScanResult
   expectfulLooper [] = throw ThrowFoundAllWants
-  expectfulLooper l  = noAvoidsAndOtherwise Lacking $ \b -> yield b
-    >> expectfulLooper (filter (\x -> not $ B.isInfixOf x b) (toS <$> l))
+  expectfulLooper l =
+    noAvoidsAndOtherwise Lacking
+      $ \b -> yield b
+          >> expectfulLooper (filter (not . flip B.isInfixOf b) (toS <$> l))
 
   noAvoidsAndOtherwise endValue otherwiseConduit = await >>= \case
     Just b | any (`B.isInfixOf` b) (toS <$> avoids) -> throw ThrowFoundAnAvoid
