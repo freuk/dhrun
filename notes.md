@@ -5,3 +5,5 @@
 - commands that exit properly and don't find 'wants' do not cause test failure!
 
 - add the 'parallel' manifest thing to non-base.json runs in the argopkgsdhrun
+
+- give a ncurse interface to execute a subset of the commands.
