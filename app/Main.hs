@@ -23,15 +23,19 @@ import           Options.Applicative           as OA
 import           Dhall
 import           System.FilePath.Posix
 import           System.Directory
+import           GHC.IO.Encoding
+import           System.IO
 
 main :: IO ()
-main = join . customExecParser (prefs showHelpOnError) $ info
-  (helper <*> opts)
-  (fullDesc <> header "Dhall-based threaded executor" <> progDesc
-    ("This small program allows to configure and execute asynchronous processes."
-    <> "It is meant to be used for CI jobs."
+main = do
+  GHC.IO.Encoding.setLocaleEncoding System.IO.utf8
+  join . customExecParser (prefs showHelpOnError) $ info
+    (helper <*> opts)
+    (fullDesc <> header "Dhall-based threaded executor" <> progDesc
+      ("This small program allows to configure and execute asynchronous processes."
+      <> "It is meant to be used for CI jobs."
+      )
     )
-  )
 
 data Common = Common
   { inputfile :: Text
