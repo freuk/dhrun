@@ -8,4 +8,8 @@
 
 - give a ncurse interface to execute a subset of the commands.
 
--C-c propagation
+- C-c propagation
+
+- add option for cleaning directory on startup
+
+- implement the postChecks

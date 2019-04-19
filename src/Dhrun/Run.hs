@@ -372,8 +372,10 @@ makeBehavior Check {..} = case wants of
           >> expectfulLooper (filter (not . flip B.isInfixOf b) (toS <$> l))
 
   noAvoidsAndOtherwise endValue otherwiseConduit = await >>= \case
-    Just b | any (`B.isInfixOf` b) (toS <$> avoids) -> yield b >> throw ThrowFoundAnAvoid
-           | otherwise                              -> otherwiseConduit b
+    Just b
+      | any (`B.isInfixOf` b) (toS <$> avoids) -> yield b
+      >> throw ThrowFoundAnAvoid
+      | otherwise -> otherwiseConduit b
     Nothing -> return endValue
 
 configureConduits

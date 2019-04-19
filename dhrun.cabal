@@ -56,6 +56,7 @@ library dhrun-lib
     protolude,
     mtl,
     bytestring,
+    process,
     conduit,
     unliftio-core,
     containers,
