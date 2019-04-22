@@ -39,7 +39,7 @@ import qualified System.Posix.Signals          as SPS
                                                 , keyboardSignal
                                                 , Handler(..)
                                                 )
-import qualified          Data.Conduit.Process.Typed as PT
+import qualified Data.Conduit.Process.Typed    as PT
 import qualified Data.Conduit.Binary           as CB
 import qualified Data.Text                     as T
                                                 ( isInfixOf
@@ -75,13 +75,13 @@ data CmdResult =
     | DiedLegal
     | DiedFailure Cmd Int
     | FoundAll Cmd
-    | FoundIllegal Cmd Std
+    | FoundIllegal Cmd Text Std
     | OutputLacking Cmd Std
     | ConduitException Cmd Std deriving (Show)
 
 data MonitoringResult =
     ThrowFoundAllWants
-  | ThrowFoundAnAvoid
+  | ThrowFoundAnAvoid Text
   deriving (Show, Typeable)
 
 instance Exception MonitoringResult
@@ -189,9 +189,11 @@ runAsyncs = (cmds <$> ask) >>= \case
         putText
           $ "All searched patterns the following command were found. Killing all processes."
           <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
-      FoundIllegal c e ->
+      FoundIllegal c t e ->
         tell
-          $  "An illegal pattern was found in the output of this process' "
+          $  "The illegal pattern "
+          <> t
+          <> " was found in the output of this process' "
           <> stdToS e
           <> ":"
           :  T.lines (toS $ encodeCmd c)
@@ -226,10 +228,16 @@ runMultipleV getter desc = getter <$> ask >>= \case
     putV $ desc <> ": done"
  where
   runOne wdirFP x =
-    liftIO (PT.runProcess $ PT.setWorkingDir (toS wdirFP) (PT.shell $ toS x)) >>= \case
-      ExitSuccess -> putV ("ran one " <> desc <> " command.")
-      ExitFailure _ ->
-        liftIO $ die $ "failed to execute one " <> desc <> " command." <> x
+    liftIO (PT.runProcess $ PT.setWorkingDir (toS wdirFP) (PT.shell $ toS x))
+      >>= \case
+            ExitSuccess -> putV ("ran one " <> desc <> " command.")
+            ExitFailure _ ->
+              liftIO
+                $  die
+                $  "failed to execute one "
+                <> desc
+                <> " command."
+                <> x
 
 data ProcessWas = Died ExitCode | Killed
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
@@ -264,13 +272,13 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
       (_                   , Left (Right Lacking) ) -> OutputLacking c Out
       (_                   , Right (Right Lacking)) -> OutputLacking c Err
       (_                   , Left (Left e)        ) -> case fromException e of
-        Just ThrowFoundAnAvoid  -> FoundIllegal c Out
-        Just ThrowFoundAllWants -> FoundAll c
-        Nothing                 -> ConduitException c Out
+        Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Out
+        Just ThrowFoundAllWants    -> FoundAll c
+        Nothing                    -> ConduitException c Out
       (_, Right (Left e)) -> case fromException e of
-        Just ThrowFoundAnAvoid  -> FoundIllegal c Err
-        Just ThrowFoundAllWants -> FoundAll c
-        Nothing                 -> ConduitException c Err
+        Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
+        Just ThrowFoundAllWants    -> FoundAll c
+        Nothing                    -> ConduitException c Err
 
   pc
     :: PT.ProcessConfig
@@ -355,10 +363,9 @@ makeBehavior Check {..} = case wants of
           >> expectfulLooper (filter (not . flip B.isInfixOf b) (toS <$> l))
 
   noAvoidsAndOtherwise endValue otherwiseConduit = await >>= \case
-    Just b
-      | any (`B.isInfixOf` b) (toS <$> avoids) -> yield b
-      >> throw ThrowFoundAnAvoid
-      | otherwise -> otherwiseConduit b
+    Just b -> case filter (`B.isInfixOf` b) (toS <$> avoids) of
+      []     -> otherwiseConduit b
+      xh : _ -> yield b >> throw (ThrowFoundAnAvoid $ toS xh)
     Nothing -> return endValue
 
 -- | runs an IO action with two conduits in lambda scope
