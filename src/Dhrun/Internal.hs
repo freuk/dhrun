@@ -18,6 +18,7 @@ module Dhrun.Internal
   , Verbosity(..)
   , Cmd(..)
   , EnvVar(..)
+  , VarName(..)
   , WorkDir(..)
   , Check(..)
   , FileCheck(..)
