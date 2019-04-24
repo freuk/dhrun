@@ -71,6 +71,12 @@ import qualified System.Environment            as SE
                                                 ( getEnvironment )
 import qualified System.Timeout                as ST
 
+import           System.Console.ANSI
+
+putC :: MonadIO m => Text -> Color -> m ()
+putC content color = setC color *> putT content *> setC White
+  where setC c = liftIO $ setSGR [SetColor Foreground Dull c]
+
 data CmdResult =
       Timeout Cmd
     | DiedLegal
@@ -94,27 +100,16 @@ stdToS :: Std -> Text
 stdToS Out = "stdout"
 stdToS Err = "stderr"
 
-{-btw :: (Functor f) => (t -> f b) -> t -> f t-}
-{-btw k x = x <$ k x-}
-
-{-(>>!) :: (Monad m) => m a -> (a -> m b) -> m a-}
-{-(!<<) :: (Monad m) => (a -> m b) -> m a -> m a-}
-{-k >>! x = k >>= btw x-}
-{-(!<<) = flip (>>!)-}
-
-{-infixr 7 >>!-}
-{-infixl 0 !<<-}
-
-{-btwc :: (Functor f) => f b -> b1 -> f b1-}
-{-btwc m = btw (const m)-}
+putT :: MonadIO m => Text -> m ()
+putT = putStr
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
 runDhrun :: (MonadIO m) => Cfg -> m ()
 runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
-  ((), []) -> liftIO $ putText
-    "Success. No errors were encountered and all requirements were met."
+  ((), []) -> liftIO $ putC "Success. " Green *> putText
+    "No errors were encountered and all requirements were met."
   ((), errors) -> liftIO $ do
-    putText "Failure. Error log:"
+    putC "Failure. " Green *> putText "Error log:"
     for_ errors Protolude.putText
     die "exiting."
 
@@ -137,7 +132,12 @@ putV text =
 runWorkDir :: (MonadIO m, MonadReader Cfg m) => m ()
 runWorkDir = do
   (shouldRemove, wd) <- ask <&> \a -> (Remove == cleaning a, toS $ workdir a)
-  when shouldRemove $ PT.runProcess_ $ PT.shell $ toS $ ("rm -rf "::Text) <> toS wd
+  when shouldRemove
+    $  PT.runProcess_
+    $  PT.shell
+    $  toS
+    $  ("rm -rf " :: Text)
+    <> toS wd
   liftIO $ SD.createDirectoryIfMissing False wd
 
 runChecks :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()

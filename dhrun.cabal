@@ -53,6 +53,7 @@ library dhrun-lib
   exposed-modules: Dhrun.Internal, Dhrun.Types, Dhrun.AesonTypes, Dhrun.Run, Dhrun.Pureutils
   build-depends:
     base,
+    ansi-terminal,
     protolude,
     mtl,
     bytestring,
