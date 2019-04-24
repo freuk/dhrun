@@ -1,5 +1,4 @@
 {-# language DerivingStrategies #-}
-
 {-# language FlexibleContexts #-}
 {-# language LambdaCase #-}
 {-# language RecordWildCards #-}

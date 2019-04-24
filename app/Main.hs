@@ -29,6 +29,7 @@ import           GHC.IO.Encoding
 import qualified System.IO                     as SIO
 import qualified Data.ByteString               as B
                                                 ( getContents )
+import           Text.Editor
 
 main :: IO ()
 main = do
@@ -45,6 +46,7 @@ data MainCfg = MainCfg
   { inputfile :: Text
   , workdir   :: Maybe Text
   , verbosity :: Verbosity
+  , edit :: Bool
 }
 
 commonParser :: Parser MainCfg
@@ -60,6 +62,9 @@ commonParser =
     <*> flag Normal
              Verbose
              (long "verbose" <> short 'v' <> help "Enable verbose mode")
+    <*> flag False
+             True
+             (long "edit" <> short 'e' <> help "Edit yaml before run")
 
 opts :: Parser (IO ())
 opts =
@@ -84,15 +89,21 @@ ext fn | xt `elem` [".dh", ".dhall"] = Just Dhall
   where xt = takeExtension $ toS fn
 
 load :: MainCfg -> IO Cfg
-load MainCfg {..} = overrideV <$> case ext (toS inputfile) of
-  (Just Dhall) ->
-    (if v then detailed else identity) $ inputCfg =<< toS <$> makeAbsolute
-      (toS inputfile)
-  (Just Yaml ) -> decodeCfgFile =<< toS <$> makeAbsolute (toS inputfile)
-  (Just Stdin) -> B.getContents <&> decodeCfg >>= \case
-    Left  e   -> Prelude.print e >> die "YAML parsing exception."
-    Right cfg -> return cfg
-  Nothing -> die $ "couldn't figure out extension for file " <> inputfile
+load MainCfg {..} =
+  (if edit then editing else return)
+    =<< overrideV
+    <$> case ext (toS inputfile) of
+          (Just Dhall) ->
+            (if v then detailed else identity)
+              $   inputCfg
+              =<< toS
+              <$> makeAbsolute (toS inputfile)
+          (Just Yaml ) -> decodeCfgFile =<< toS <$> makeAbsolute (toS inputfile)
+          (Just Stdin) -> B.getContents <&> decodeCfg >>= \case
+            Left  e   -> Prelude.print e >> die "YAML parsing exception."
+            Right cfg -> return cfg
+          Nothing ->
+            die $ "couldn't figure out extension for file " <> inputfile
  where
   v = verbosity == Verbose
   overrideV x = x
@@ -101,6 +112,12 @@ load MainCfg {..} = overrideV <$> case ext (toS inputfile) of
                        else Normal
     , DI.workdir   = WorkDir $ fromMaybe (toS $ DI.workdir x) workdir
     }
+
+editing :: Cfg -> IO Cfg
+editing c = runUserEditorDWIM yt (encodeCfg c) <&> decodeCfg >>= \case
+  Left  e   -> Prelude.print e >> die "YAML parsing exception."
+  Right cfg -> return cfg
+  where yt = mkTemplate "yaml"
 
 run :: MainCfg -> IO ()
 run c = load c >>= DR.runDhrun
