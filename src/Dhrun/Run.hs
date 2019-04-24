@@ -79,7 +79,7 @@ putC content color = setC color *> putT content *> setC White
 
 data CmdResult =
       Timeout Cmd
-    | DiedLegal
+    | DiedLegal Cmd
     | DiedFailure Cmd Int
     | FoundAll Cmd
     | FoundIllegal Cmd Text Std
@@ -92,8 +92,6 @@ data MonitoringResult =
   deriving (Show, Typeable)
 
 instance Exception MonitoringResult
-
-data ScanResult =  Clean | Lacking  deriving (Show)
 
 data Std = Out | Err deriving (Show)
 stdToS :: Std -> Text
@@ -109,7 +107,7 @@ runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
   ((), []) -> liftIO $ putC "Success. " Green *> putText
     "No errors were encountered and all requirements were met."
   ((), errors) -> liftIO $ do
-    putC "Failure. " Green *> putText "Error log:"
+    putC "Failure. " Red *> putText "Error log:"
     for_ errors Protolude.putText
     die "exiting."
 
@@ -176,7 +174,9 @@ runAsyncs = (cmds <$> ask) >>= \case
   [] -> putV "async step: no processes."
   l  -> do
     putV "async step: start"
-    wd        <- workdir <$> ask
+    wd <- workdir <$> ask
+    let noWants = null $ mconcat (wants . filecheck . out <$> l) ++ mconcat
+          (wants . filecheck . err <$> l)
     externEnv <- (\lenv -> (\(n, v) -> (toS n, toS v)) <$> lenv)
       <$> liftIO SE.getEnvironment
     asyncs <- liftIO $ mkAsyncs l externEnv wd
@@ -191,10 +191,15 @@ runAsyncs = (cmds <$> ask) >>= \case
           <> show n
           <> " :"
           :  T.lines (toS $ encodeCmd c)
-      DiedLegal -> putText "All commands exited successfully."
+      DiedLegal c -> if noWants
+        then putText "All commands exited successfully."
+        else tell
+          [ "command exited:"
+              <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
+          ]
       FoundAll c ->
         putText
-          $ "All searched patterns the following command were found. Killing all processes."
+          $ "All searched patterns in the following command were found. Killing all processes.\n "
           <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
       FoundIllegal c t e ->
         tell
@@ -270,12 +275,12 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
       Just ec -> return $ Died ec
       Nothing -> PT.stopProcess p >> return Killed
     return $ case (processOutput, conduitOutput) of
-      (Died (ExitFailure n), _                    ) -> DiedFailure c n
-      (_                   , Left (Right Clean)   ) -> DiedLegal
-      (_                   , Right (Right Clean)  ) -> DiedLegal
-      (_                   , Left (Right Lacking) ) -> OutputLacking c Out
-      (_                   , Right (Right Lacking)) -> OutputLacking c Err
-      (_                   , Left (Left e)        ) -> case fromException e of
+      (Died (ExitFailure n), _) -> DiedFailure c n
+      (_, Left (Right ())) ->
+        if noChecks then DiedLegal c else OutputLacking c Out
+      (_, Right (Right ())) ->
+        if noChecks then DiedLegal c else OutputLacking c Err
+      (_, Left (Left e)) -> case fromException e of
         Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Out
         Just ThrowFoundAllWants    -> FoundAll c
         Nothing                    -> ConduitException c Out
@@ -283,6 +288,8 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
         Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
         Just ThrowFoundAllWants    -> FoundAll c
         Nothing                    -> ConduitException c Err
+
+  noChecks = null (wants $ filecheck out) && null (wants $ filecheck err)
 
   pc
     :: PT.ProcessConfig
@@ -319,17 +326,13 @@ withAsyncConduitsOnProcess
   :: PT.Process () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
   -> ConduitSpec -- stdout conduit spec
   -> ConduitSpec -- stderr conduit spec
-  -> (Async ScanResult -> Async ScanResult -> IO b) -- the lambda-wrapped IO action
+  -> (Async () -> Async () -> IO b) -- the lambda-wrapped IO action
   -> IO b
 withAsyncConduitsOnProcess p cOut cErr = withAsyncs
   (doFilter (ccheck cOut) (PT.getStdout p) (conduit cOut))
   (doFilter (ccheck cErr) (PT.getStderr p) (conduit cErr))
 
-withAsyncs
-  :: IO ScanResult
-  -> IO ScanResult
-  -> (Async ScanResult -> Async ScanResult -> IO b)
-  -> IO b
+withAsyncs :: IO () -> IO () -> (Async () -> Async () -> IO b) -> IO b
 withAsyncs io1 io2 f =
   liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
 
@@ -338,7 +341,7 @@ doFilter
   :: Check
   -> ConduitT () ByteString IO ()
   -> ConduitT ByteString Void IO ()
-  -> IO ScanResult
+  -> IO ()
 doFilter behavior source sink =
   runConduit
     $              source
@@ -349,28 +352,27 @@ doFilter behavior source sink =
 
 -- | makeBehavior builds an IO conduit that throws a PatternMatched when
 -- all wanted pattern or one avoided pattern are found
-makeBehavior :: Check -> ConduitT ByteString ByteString IO ScanResult
+makeBehavior :: Check -> ConduitT ByteString ByteString IO ()
 makeBehavior Check {..} = case wants of
   [] -> cleanLooper
   as -> expectfulLooper $ toS <$> as
  where
 
-  cleanLooper :: ConduitT ByteString ByteString IO ScanResult
-  cleanLooper = noAvoidsAndOtherwise Clean $ \b -> yield b >> cleanLooper
+  cleanLooper :: ConduitT ByteString ByteString IO ()
+  cleanLooper = noAvoidsAndOtherwise $ \b -> yield b >> cleanLooper
 
-  expectfulLooper
-    :: [ByteString] -> ConduitT ByteString ByteString IO ScanResult
+  expectfulLooper :: [ByteString] -> ConduitT ByteString ByteString IO ()
   expectfulLooper [] = throw ThrowFoundAllWants
   expectfulLooper l =
-    noAvoidsAndOtherwise Lacking
+    noAvoidsAndOtherwise
       $ \b -> yield b
           >> expectfulLooper (filter (not . flip B.isInfixOf b) (toS <$> l))
 
-  noAvoidsAndOtherwise endValue otherwiseConduit = await >>= \case
+  noAvoidsAndOtherwise otherwiseConduit = await >>= \case
     Just b -> case filter (`B.isInfixOf` b) (toS <$> avoids) of
       []     -> otherwiseConduit b
       xh : _ -> yield b >> throw (ThrowFoundAnAvoid $ toS xh)
-    Nothing -> return endValue
+    Nothing -> return ()
 
 -- | runs an IO action with two conduits in lambda scope
 withConduitSinks
