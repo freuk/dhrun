@@ -30,7 +30,7 @@ testDY :: (MonadIO m, MonadWriter [Text] m) => Text -> m Result
 testDY fn = do
 
   tell ["loading " <> fn <> ".yml:"]
-  loadedY <- decodeCfg $ "./examples/" <> fn <> "/" <> fn <> ".yml"
+  loadedY <- decodeCfgFile $ "./examples/" <> fn <> "/" <> fn <> ".yml"
   for_ (B8.lines $ encodeCfg loadedY) $ \x -> tell [toS x]
 
   tell ["loading " <> fn <> ".dh:"]
