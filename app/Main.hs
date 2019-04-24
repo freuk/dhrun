@@ -39,6 +39,7 @@ main = do
 
 data Common = Common
   { inputfile :: Text
+  , workdir :: Maybe Text
   , verbosity :: Verbosity
 }
 
@@ -46,6 +47,12 @@ commonParser :: Parser Common
 commonParser =
   Common
     <$> strArgument (metavar "INPUT" <> help "input dhall configuration")
+    <*> optional
+          (strOption
+            (long "workdir" <> metavar "DIRECTORY" <> help
+              "working directory (configuration overwrite)"
+            )
+          )
     <*> flag Normal
              Verbose
              (long "verbose" <> short 'v' <> help "Enable verbose mode")
@@ -84,6 +91,7 @@ load Common {..} = do
     { DI.verbosity = if (DI.verbosity x == Verbose) || v
                        then Verbose
                        else Normal
+    , DI.workdir   = WorkDir $ fromMaybe (toS $ DI.workdir x) workdir
     }
 
 run :: Common -> IO ()
