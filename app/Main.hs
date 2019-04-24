@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
@@ -17,6 +18,7 @@ where
 
 import           Protolude
 
+import qualified Prelude                        ( print )
 import           Dhrun.Internal                as DI
 import           Dhrun.Run                     as DR
 import           Options.Applicative           as OA
@@ -24,11 +26,13 @@ import           Dhall
 import           System.FilePath.Posix
 import           System.Directory
 import           GHC.IO.Encoding
-import           System.IO
+import qualified System.IO                     as SIO
+import qualified Data.ByteString               as B
+                                                ( getContents )
 
 main :: IO ()
 main = do
-  GHC.IO.Encoding.setLocaleEncoding System.IO.utf8
+  GHC.IO.Encoding.setLocaleEncoding SIO.utf8
   join . customExecParser (prefs showHelpOnError) $ info
     (helper <*> opts)
     (fullDesc <> header "Dhall-based threaded executor" <> progDesc
@@ -37,15 +41,15 @@ main = do
       )
     )
 
-data Common = Common
+data MainCfg = MainCfg
   { inputfile :: Text
   , workdir   :: Maybe Text
   , verbosity :: Verbosity
 }
 
-commonParser :: Parser Common
+commonParser :: Parser MainCfg
 commonParser =
-  Common
+  MainCfg
     <$> strArgument (metavar "INPUT" <> help "input dhall configuration")
     <*> optional
           (strOption
@@ -71,20 +75,24 @@ opts =
     <> help "Type of operation to run."
 
 
-data Ext = Dhall | Yaml
-ext :: Text -> Maybe Ext
+data Source = Dhall | Yaml | Stdin
+ext :: Text -> Maybe Source
+ext "-" = Just Stdin
 ext fn | xt `elem` [".dh", ".dhall"] = Just Dhall
        | xt `elem` [".yml", ".yaml"] = Just Yaml
        | otherwise                   = Nothing
   where xt = takeExtension $ toS fn
 
-load :: Common -> IO Cfg
-load Common {..} = do
-  infile <- toS <$> makeAbsolute (toS inputfile)
-  overrideV <$> case ext infile of
-    (Just Dhall) -> (if v then detailed else identity) $ inputCfg infile
-    (Just Yaml ) -> decodeCfg infile
-    Nothing      -> die $ "couldn't figure out extension for file " <> infile
+load :: MainCfg -> IO Cfg
+load MainCfg {..} = overrideV <$> case ext (toS inputfile) of
+  (Just Dhall) ->
+    (if v then detailed else identity) $ inputCfg =<< toS <$> makeAbsolute
+      (toS inputfile)
+  (Just Yaml ) -> decodeCfgFile =<< toS <$> makeAbsolute (toS inputfile)
+  (Just Stdin) -> B.getContents <&> decodeCfg >>= \case
+    Left  e   -> Prelude.print e >> die "YAML parsing exception."
+    Right cfg -> return cfg
+  Nothing -> die $ "couldn't figure out extension for file " <> inputfile
  where
   v = verbosity == Verbose
   overrideV x = x
@@ -94,8 +102,8 @@ load Common {..} = do
     , DI.workdir   = WorkDir $ fromMaybe (toS $ DI.workdir x) workdir
     }
 
-run :: Common -> IO ()
+run :: MainCfg -> IO ()
 run c = load c >>= DR.runDhrun
 
-printY :: Common -> IO ()
+printY :: MainCfg -> IO ()
 printY c = load c >>= putText . toS . encodeCfg

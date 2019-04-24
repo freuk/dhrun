@@ -29,6 +29,7 @@ module Dhrun.Internal
   , toInternalCmd
   , fromInternalCmd
   , inputCfg
+  , decodeCfgFile
   , decodeCfg
   , encodeCfg
   , encodeCmd
@@ -38,6 +39,7 @@ where
 import           Dhall
 import qualified Dhrun.Types                   as DT
 import qualified Dhrun.AesonTypes              as DAT
+import           Data.Yaml.Internal
 import           Protolude
 import qualified Prelude                        ( String )
 
@@ -141,12 +143,12 @@ toInternal DT.Cfg {..} = Cfg
 
 fromInternal :: Cfg -> DT.Cfg
 fromInternal Cfg {..} = DT.Cfg
-  { cmds      = fromInternalCmd <$> cmds
-  , workdir   = toS workdir
-  , cleaning  = cleaning == Remove
-  , pre       = toS <$> pre
-  , post      = toS <$> post
-  , verbose   = verbosity == Verbose
+  { cmds     = fromInternalCmd <$> cmds
+  , workdir  = toS workdir
+  , cleaning = cleaning == Remove
+  , pre      = toS <$> pre
+  , post     = toS <$> post
+  , verbose  = verbosity == Verbose
   }
 
 {-data Cmd = Cmd -}
@@ -206,8 +208,11 @@ fromInternalCheck :: Check -> DT.Check
 fromInternalCheck Check {..} =
   DT.Check {avoids = toS <$> avoids, wants = toS <$> wants}
 
-decodeCfg :: (MonadIO m) => Text -> m Cfg
-decodeCfg fn = toInternal <$> DAT.decodeCfg fn
+decodeCfgFile :: (MonadIO m) => Text -> m Cfg
+decodeCfgFile fn = toInternal <$> DAT.decodeCfgFile fn
+
+decodeCfg :: ByteString -> Either Data.Yaml.Internal.ParseException Cfg
+decodeCfg t = toInternal <$> DAT.decodeCfg t
 
 encodeCfg :: Cfg -> ByteString
 encodeCfg = DAT.encodeCfg . fromInternal

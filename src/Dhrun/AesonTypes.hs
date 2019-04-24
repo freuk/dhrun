@@ -19,6 +19,7 @@ Maintainer  : fre@freux.fr
 
 module Dhrun.AesonTypes
   ( Cfg(..)
+  , decodeCfgFile
   , decodeCfg
   , encodeCfg
   , encodeCmd
@@ -139,11 +140,14 @@ fromInternal d = Cfg {..}
     [] -> Nothing
     l  -> Just l
 
-decodeCfg :: (MonadIO m) => Text -> m DT.Cfg
-decodeCfg fn = liftIO $ try (decodeFileEither (toS fn)) >>= \case
+decodeCfgFile :: (MonadIO m) => Text -> m DT.Cfg
+decodeCfgFile fn = liftIO $ try (decodeFileEither (toS fn)) >>= \case
   Left  e          -> throwError e
   Right (Left  pa) -> throwError $ userError $ "parse fail:" <> show pa
   Right (Right a ) -> return $ toInternal a
+
+decodeCfg :: ByteString -> Either ParseException DT.Cfg
+decodeCfg fn = toInternal <$> decodeEither' fn
 
 encodeCfg :: DT.Cfg -> ByteString
 encodeCfg = Data.Yaml.encode . fromInternal

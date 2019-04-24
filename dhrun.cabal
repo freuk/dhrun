@@ -23,6 +23,7 @@ executable dhrun
     base,
     protolude,
     directory,
+    bytestring,
     dhrun-lib,
     filepath,
     optparse-applicative,
