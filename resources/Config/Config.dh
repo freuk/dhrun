@@ -1,11 +1,13 @@
-    let Verbosity = ../Verbosity/Verbosity.dh
+    let Verbosity = ./../Verbosity/Verbosity.dh
 
-in  let FileCheck = ../FileCheck/FileCheck.dh
+in  let FileCheck = ./../FileCheck/FileCheck.dh
 
-in  let Cmd = ../Cmd/Cmd.dh
+in  let Cmd = ./../Cmd/Cmd.dh
 
 in  { cmds :
         List Cmd
+    , cleaning :
+        Bool
     , verbose :
         Bool
     , workdir :

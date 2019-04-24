@@ -29,6 +29,7 @@ in  let config =
                   }
                 ]
             , verbose = False
+            , cleaning = False
             , workdir =
                 "/tmp/dhrun_wd" : Text
             , pre =

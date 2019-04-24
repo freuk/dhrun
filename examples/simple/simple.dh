@@ -22,6 +22,7 @@ in  let config =
                   }
                 ]
             , verbose = False
+            , cleaning = False
             , workdir =
                 "./"
             , pre =

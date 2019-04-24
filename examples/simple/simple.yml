@@ -5,7 +5,7 @@ cmds:
       - hello
       - world
     out:
-      filename: foa
+      filename: foo
       filecheck:
         avoids: null
         wants: null

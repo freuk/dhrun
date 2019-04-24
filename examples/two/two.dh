@@ -40,6 +40,7 @@ in  let config =
                   }
                 ]
             , verbose = False
+            , cleaning = False
             , workdir =
                 "./_dhrun_out"
             , pre =
