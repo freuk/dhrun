@@ -1,4 +1,5 @@
 {-# language DerivingStrategies #-}
+
 {-# language FlexibleContexts #-}
 {-# language LambdaCase #-}
 {-# language RecordWildCards #-}
@@ -93,16 +94,16 @@ stdToS :: Std -> Text
 stdToS Out = "stdout"
 stdToS Err = "stderr"
 
-btw :: (Functor f) => (t -> f b) -> t -> f t
-btw k x = x <$ k x
+{-btw :: (Functor f) => (t -> f b) -> t -> f t-}
+{-btw k x = x <$ k x-}
 
-(>>!) :: (Monad m) => m a -> (a -> m b) -> m a
-(!<<) :: (Monad m) => (a -> m b) -> m a -> m a
-k >>! x = k >>= btw x
-(!<<) = flip (>>!)
+{-(>>!) :: (Monad m) => m a -> (a -> m b) -> m a-}
+{-(!<<) :: (Monad m) => (a -> m b) -> m a -> m a-}
+{-k >>! x = k >>= btw x-}
+{-(!<<) = flip (>>!)-}
 
-infixr 7 >>!
-infixl 0 !<<
+{-infixr 7 >>!-}
+{-infixl 0 !<<-}
 
 {-btwc :: (Functor f) => f b -> b1 -> f b1-}
 {-btwc m = btw (const m)-}
@@ -120,10 +121,11 @@ runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
 runAll :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAll = do
   liftIO $ SIO.hSetBuffering SIO.stdout SIO.NoBuffering
-  runPre
-  runAsyncs
-  runChecks
-  runPost
+  runWorkDir -- setting up the working directory
+  runPre     -- preprocessing steps
+  runAsyncs  -- running the main async step
+  runChecks  -- running file checks
+  runPost    -- postprocessing steps
  where
   runPre  = runMultipleV ((toS <$>) <$> pre) "pre-processing"
   runPost = runMultipleV ((toS <$>) <$> post) "post-processing"
@@ -131,6 +133,12 @@ runAll = do
 putV :: (MonadIO m, MonadReader Cfg m) => Text -> m ()
 putV text =
   (== Verbose) . verbosity <$> ask >>= flip when (liftIO $ putText text)
+
+runWorkDir :: (MonadIO m, MonadReader Cfg m) => m ()
+runWorkDir = do
+  (shouldRemove, wd) <- ask <&> \a -> (Remove == cleaning a, toS $ workdir a)
+  when shouldRemove $ PT.runProcess_ $ PT.shell $ toS $ ("rm -rf "::Text) <> toS wd
+  liftIO $ SD.createDirectoryIfMissing False wd
 
 runChecks :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runChecks = (cmds <$> ask) >>= \case
@@ -168,8 +176,7 @@ runAsyncs = (cmds <$> ask) >>= \case
   [] -> putV "async step: no processes."
   l  -> do
     putV "async step: start"
-    wd@(WorkDir wdText) <- ask <&> workdir
-    createIfMissing wdText
+    wd        <- workdir <$> ask
     externEnv <- (\lenv -> (\(n, v) -> (toS n, toS v)) <$> lenv)
       <$> liftIO SE.getEnvironment
     asyncs <- liftIO $ mkAsyncs l externEnv wd
@@ -214,16 +221,13 @@ runAsyncs = (cmds <$> ask) >>= \case
   mkAsyncs :: [Cmd] -> [(Text, Text)] -> WorkDir -> IO [Async CmdResult]
   mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
 
-createIfMissing :: (MonadIO m) => Text -> m ()
-createIfMissing fp = liftIO . SD.createDirectoryIfMissing False $ toS fp
-
 runMultipleV
   :: (MonadIO m, MonadReader Cfg m) => (Cfg -> [Text]) -> Text -> m ()
 runMultipleV getter desc = getter <$> ask >>= \case
   [] -> putV $ "no " <> desc <> " commands to run."
   l  -> do
     putV $ desc <> ": start"
-    wdirFP <- createIfMissing !<< ask <&> workdir <&> \(WorkDir wdt) -> wdt
+    wdirFP <- ask <&> workdir <&> \(WorkDir wdt) -> wdt
     for_ l $ runOne wdirFP
     putV $ desc <> ": done"
  where

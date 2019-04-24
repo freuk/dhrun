@@ -39,7 +39,7 @@ main = do
 
 data Common = Common
   { inputfile :: Text
-  , workdir :: Maybe Text
+  , workdir   :: Maybe Text
   , verbosity :: Verbosity
 }
 

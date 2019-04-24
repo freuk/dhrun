@@ -20,6 +20,7 @@ module Dhrun.Internal
   , EnvVar(..)
   , VarName(..)
   , WorkDir(..)
+  , WorkDirBehavior(..)
   , Check(..)
   , FileCheck(..)
   , Pattern(..)
@@ -83,6 +84,11 @@ instance StringConv Post Text where
 newtype WorkDir = WorkDir Text deriving (Eq,Show)
 instance StringConv WorkDir Text where
   strConv _ (WorkDir x) = toS x
+instance StringConv WorkDir FilePath where
+  strConv _ (WorkDir x) = toS x
+
+data WorkDirBehavior = Keep | Remove
+  deriving (Read, Show, Eq)
 
 data Verbosity = Normal | Verbose
   deriving (Read, Show, Eq)
@@ -117,6 +123,7 @@ data Cmd = Cmd {
 data Cfg = Cfg
   { cmds      :: [Cmd],
     workdir   :: WorkDir,
+    cleaning  :: WorkDirBehavior,
     verbosity :: Verbosity,
     pre       :: [Pre],
     post      :: [Post]
@@ -126,6 +133,7 @@ toInternal :: DT.Cfg -> Cfg
 toInternal DT.Cfg {..} = Cfg
   { cmds      = toInternalCmd <$> cmds
   , workdir   = WorkDir workdir
+  , cleaning  = if cleaning then Remove else Keep
   , pre       = Pre <$> pre
   , post      = Post <$> post
   , verbosity = if verbose then Verbose else Normal
@@ -135,6 +143,7 @@ fromInternal :: Cfg -> DT.Cfg
 fromInternal Cfg {..} = DT.Cfg
   { cmds      = fromInternalCmd <$> cmds
   , workdir   = toS workdir
+  , cleaning  = cleaning == Remove
   , pre       = toS <$> pre
   , post      = toS <$> post
   , verbose   = verbosity == Verbose

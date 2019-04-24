@@ -47,6 +47,7 @@ data Cfg = Cfg
   { cmds      :: [Cmd],
     workdir   :: Maybe Text,
     verbose   :: Maybe Bool,
+    cleaning  :: Maybe Bool,
     pre       :: Maybe [Text],
     post      :: Maybe [Text]
   } deriving (Eq, Show, Generic, FromJSON, ToJSON)
@@ -94,11 +95,12 @@ toInternalCmd c = DT.Cmd
 
 toInternal :: Cfg -> DT.Cfg
 toInternal d = DT.Cfg
-  { cmds      = toInternalCmd <$> cmds d
-  , verbose   = fromMaybe False (verbose d)
-  , pre       = fromMaybe [] (pre d)
-  , post      = fromMaybe [] (post d)
-  , workdir   = fromMaybe "./" (workdir d)
+  { cmds     = toInternalCmd <$> cmds d
+  , verbose  = fromMaybe False (verbose d)
+  , cleaning = fromMaybe False (cleaning d)
+  , pre      = fromMaybe [] (pre d)
+  , post     = fromMaybe [] (post d)
+  , workdir  = fromMaybe "./" (workdir d)
   }
 
 fromInternalCmd :: DT.Cmd -> Cmd
@@ -127,9 +129,10 @@ fromInternal d = Cfg {..}
   workdir = case DT.workdir d of
     "./" -> Nothing
     w    -> Just w
-  cmds      = fromInternalCmd <$> DT.cmds d
-  verbose   = if DT.verbose d then Just True else Nothing
-  pre       = case DT.pre d of
+  cmds     = fromInternalCmd <$> DT.cmds d
+  verbose  = if DT.verbose d then Just True else Nothing
+  cleaning = if DT.cleaning d then Just True else Nothing
+  pre      = case DT.pre d of
     [] -> Nothing
     l  -> Just l
   post = case DT.post d of

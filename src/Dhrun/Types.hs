@@ -46,6 +46,7 @@ data Check = Check {
 data Cfg = Cfg
   { cmds      :: [Cmd],
     workdir   :: Text,
+    cleaning  :: Bool,
     verbose   :: Bool,
     pre       :: [Text],
     post      :: [Text]
