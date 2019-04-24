@@ -80,6 +80,7 @@ putC content color = setC color *> putT content *> setC White
 data CmdResult =
       Timeout Cmd
     | DiedLegal Cmd
+    | ThrewException Cmd IOException
     | DiedFailure Cmd Int
     | FoundAll Cmd
     | FoundIllegal Cmd Text Std
@@ -107,8 +108,9 @@ runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
   ((), []) -> liftIO $ putC "Success. " Green *> putText
     "No errors were encountered and all requirements were met."
   ((), errors) -> liftIO $ do
-    putC "Failure. " Red *> putText "Error log:"
+    putText "Error log:"
     for_ errors Protolude.putText
+    putC "Failure. " Red
     die "exiting."
 
 runAll :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
@@ -217,9 +219,12 @@ runAsyncs = (cmds <$> ask) >>= \case
           :  T.lines (toS $ encodeCmd c)
       ConduitException c e ->
         tell
-          $  "This process' "
+          $  "This process ended with a conduit exception:"
           <> stdToS e
-          <> " ended with a conduit exception:"
+          :  T.lines (toS $ encodeCmd c)
+      ThrewException c e ->
+        tell
+          $  "This process' execution ended with an exception: " <> show e
           :  T.lines (toS $ encodeCmd c)
     putV "async step: done"
  where
@@ -253,8 +258,10 @@ runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
   fromMaybe (Timeout c) <$> maybeTimeout
     timeout
-    ( withConduitSinks (getfn out) (getfn err)
-    $ \outSink errSink -> (PT.withProcess pc $ go outSink errSink)
+    (withConduitSinks (getfn out) (getfn err) $ \outSink errSink ->
+      ( catch (PT.withProcess pc $ go outSink errSink)
+      $ \(e :: IOException) -> return $ ThrewException c e
+      )
     )
  where
   go
