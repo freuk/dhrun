@@ -76,11 +76,11 @@ runDhrun dhallExec =
 runAllSteps :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAllSteps = do
   liftIO $ SIO.hSetBuffering SIO.stdout SIO.NoBuffering
-  runWorkDir -- setting up the working directory
-  runPre     -- preprocessing steps
-  runAsyncs  -- running the main async step
-  runChecks  -- running file checks
-  runPost    -- postprocessing steps
+  runWorkDir -- | setting up the working directory
+  runPre     -- | preprocessing steps
+  runAsyncs  -- | running the main async step
+  runChecks  -- | running file checks
+  runPost    -- | postprocessing steps
  where
   runPre  = runMultipleV ((toS <$>) <$> pre) "pre-processing"
   runPost = runMultipleV ((toS <$>) <$> post) "post-processing"
@@ -214,42 +214,15 @@ runMultipleV getter desc = getter <$> ask >>= \case
                 <> " command."
                 <> x
 
-type P  = PT.Process
-  () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
-type PC = PT.ProcessConfig
-  () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
-
+-- | Runs a single command.
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
   fromMaybe (Timeout c) <$> maybeTimeout timeout go
  where
-  getFilename wdT fc = toS $ wdT <> "/" <> toS (filename fc)
-
-  outFile = getFilename wd out
-  errFile = getFilename wd err
-
-  go :: IO CmdResult
-  go = withSinkFileNoBuffering outFile $ \sout ->
-    withSinkFileNoBuffering errFile
-      $ \serr -> withSafeP $ \p -> logic sout serr p
-
-  logic sout serr p =
-    finalize c
-      <$> withAsyncs (doFilter (filecheck out) (PT.getStdout p) sout)
-                     (doFilter (filecheck err) (PT.getStderr p) serr)
-                     waitEitherCatchCancel
-      <*> (PT.getExitCode p >>= \case
-            Nothing -> const Killed <$> PT.stopProcess p
-            Just ec -> return $ Died ec
-          )
-
-  withSafeP :: (P -> IO CmdResult) -> IO CmdResult
-  withSafeP f = catchIOE $ PT.withProcess pc f
-
-  catchIOE :: IO CmdResult -> IO CmdResult
-  catchIOE ioOp =
-    catch ioOp $ \(e :: IOException) -> return $ ThrewException c e
-
+  outFile :: FilePath
+  outFile = getWdFilename wd out
+  errFile :: FilePath
+  errFile = getWdFilename wd err
   pc :: PC
   pc =
     PT.proc (toS name) (toS <$> args)
@@ -259,14 +232,38 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
       & PT.setStderr PT.createSource
       & PT.setStdin PT.closed
 
+  go :: IO CmdResult
+  go = with3 (withSinkFileNoBuffering outFile)
+             (withSinkFileNoBuffering errFile)
+             (withWrappedSafeP c pc)
+             logic
+
+  -- | the main logic, that uses two sinks and the started process to
+  -- do the streaming monitoring.
+  logic :: Sink -> Sink -> P -> IO CmdResult
+  logic sout serr p =
+    finalize c
+      <$> with2 (withAsync $ monitor (filecheck out) (PT.getStdout p) sout)
+                (withAsync $ monitor (filecheck err) (PT.getStderr p) serr)
+                waitEitherCatchCancel
+      <*> (PT.getExitCode p >>= \case
+            Nothing -> const Killed <$> PT.stopProcess p
+            Just ec -> return $ Died ec
+          )
+
+-- | Times out an IO command if necessary
 maybeTimeout :: Maybe Int -> IO a -> IO (Maybe a)
 maybeTimeout i io = case i of
   Nothing -> Just <$> io
   Just t  -> ST.timeout (100000 * t) io
 
-withAsyncs :: IO () -> IO () -> (Async () -> Async () -> IO b) -> IO b
-withAsyncs io1 io2 f =
-  liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
+-- | runs an IO action with a preconfigured process (PC) in lambda scope (P)
+withWrappedSafeP :: Cmd -> PC -> (P -> IO CmdResult) -> IO CmdResult
+withWrappedSafeP c pc f = catchIOE $ PT.withProcess pc f
+ where
+  catchIOE :: IO CmdResult -> IO CmdResult
+  catchIOE ioOp =
+    catch ioOp $ \(e :: IOException) -> return $ ThrewException c e
 
 -- | runs an IO action with a file sink in lambda scope
 withSinkFileNoBuffering

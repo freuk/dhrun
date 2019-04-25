@@ -7,7 +7,11 @@ Maintainer  : fre@freux.fr
 -}
 
 module Dhrun.Conduit
-  ( doFilter
+  ( monitor
+  , Sink
+  , Source
+  , P
+  , PC
   )
 where
 
@@ -27,15 +31,25 @@ import           Data.Conduit                   ( ConduitT
                                                 , fuseUpstream
                                                 , (.|)
                                                 )
+import qualified Data.Conduit.Process.Typed    as PT
+                                                ( Process
+                                                , ProcessConfig
+                                                )
+
+
+type Source = ConduitT () ByteString IO ()
+type Sink = ConduitT ByteString Void IO ()
+type P  = PT.Process () Source Source
+type PC = PT.ProcessConfig () Source Source
 
 -- | THROWS PatternMatched
-doFilter
+monitor
   :: (Monad m)
   => Check
   -> ConduitT () ByteString m ()
   -> ConduitT ByteString Void m ()
   -> m ()
-doFilter behavior source sink =
+monitor behavior source sink =
   runConduit
     $              source
     .|             CB.lines

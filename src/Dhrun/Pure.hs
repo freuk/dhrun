@@ -15,7 +15,10 @@ module Dhrun.Pure
   , envVars
   , mapTuple
   , finalize
+  , getWdFilename
   , stdToS
+  , with3
+  , with2
   )
 where
 
@@ -78,6 +81,9 @@ forcedEnvVars vs = (\EnvVar {..} -> (toS varname, toS value)) <$> vs
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple = join (***)
 
+getWdFilename :: Text -> FileCheck a -> FilePath
+getWdFilename wdT fc = toS $ wdT <> "/" <> toS (filename fc)
+
 finalize
   :: Cmd
   -> Either (Either SomeException ()) (Either SomeException ())
@@ -97,3 +103,13 @@ finalize c (Right (Left e)) _ = case fromException e of
   Just ThrowFoundAllWants    -> FoundAll c
   Nothing                    -> ConduitException c Err
 
+with3
+  :: ((t1 -> t2) -> t3)
+  -> ((t4 -> t5) -> t2)
+  -> ((t6 -> t7) -> t5)
+  -> (t1 -> t4 -> t6 -> t7)
+  -> t3
+with3 w1 w2 w3 f = w1 $ \v1 -> w2 $ \v2 -> w3 $ \v3 -> f v1 v2 v3
+
+with2 :: ((t1 -> t2) -> t3) -> ((t4 -> t5) -> t2) -> (t1 -> t4 -> t5) -> t3
+with2 w1 w2 f = w1 $ \v1 -> w2 $ \v2 -> f v1 v2
