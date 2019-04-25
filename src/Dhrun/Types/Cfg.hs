@@ -1,9 +1,5 @@
 {-# language MultiParamTypeClasses #-}
-{-# language LambdaCase #-}
-{-# language RecordWildCards #-}
-{-# language TypeSynonymInstances #-}
 {-# language FlexibleInstances #-}
-{-# language NoImplicitPrelude #-}
 
 {-|
 Module      : Dhrun.Internal

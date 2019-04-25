@@ -1,12 +1,6 @@
 {-# language DeriveAnyClass #-}
 {-# language DeriveFunctor #-}
-{-# language FlexibleInstances #-}
-{-# language FlexibleContexts #-}
-{-# language LambdaCase #-}
-{-# language MultiParamTypeClasses #-}
-{-# language DerivingStrategies #-}
 {-# language DeriveGeneric #-}
-{-# language NoImplicitPrelude #-}
 
 {-|
 Module      : Dhrun.Types

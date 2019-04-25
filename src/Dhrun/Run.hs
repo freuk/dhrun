@@ -1,13 +1,5 @@
-{-# language DerivingStrategies #-}
 {-# language FlexibleContexts #-}
-{-# language LambdaCase #-}
-{-# language RecordWildCards #-}
-{-# language DataKinds #-}
-{-# language FlexibleInstances #-}
-{-# language ScopedTypeVariables #-}
 {-# language TypeOperators #-}
-{-# language NoImplicitPrelude #-}
-{-# language OverloadedStrings #-}
 
 {-|
 Module      : Dhrun.Run
@@ -27,12 +19,7 @@ import           Dhrun.Pure
 import           Dhrun.Conduit
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
-import           Data.Conduit                   ( ConduitT
-                                                , runConduit
-                                                , fuseUpstream
-                                                , (.|)
-                                                )
-import qualified Data.Conduit.Combinators      as CC
+import           Data.Conduit                   ( ConduitT )
 import qualified System.Posix.Signals          as SPS
                                                 ( installHandler
                                                 , keyboardSignal
@@ -69,34 +56,25 @@ import           System.Console.ANSI
 
 putC :: MonadIO m => Text -> Color -> m ()
 putC content color = setC color *> putT content *> setC White
-  where setC c = liftIO $ setSGR [SetColor Foreground Dull c]
-
-data ConduitSpec = ConduitSpec {
-  conduit :: ConduitT ByteString Void IO (),
-  ccheck   :: Check
-}
-
-
-stdToS :: Std -> Text
-stdToS Out = "stdout"
-stdToS Err = "stderr"
-
-putT :: MonadIO m => Text -> m ()
-putT = putStr
+ where
+  setC c = liftIO $ setSGR [SetColor Foreground Dull c]
+  putT :: MonadIO m => Text -> m ()
+  putT = putStr
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
 runDhrun :: (MonadIO m) => Cfg -> m ()
-runDhrun dhallExec = runWriterT (runReaderT runAll dhallExec) >>= \case
-  ((), []) -> liftIO $ putC "Success. " Green *> putText
-    "No errors were encountered and all requirements were met."
-  ((), errors) -> liftIO $ do
-    putText "Error log:"
-    for_ errors Protolude.putText
-    putC "Failure. " Red
-    die "exiting."
+runDhrun dhallExec =
+  runWriterT (runReaderT runAllSteps dhallExec) <&> snd >>= liftIO . \case
+    [] -> putC "Success. " Green
+      <> putText "No errors were encountered and all requirements were met."
+    errors ->
+      putText "Error log:"
+        <> for_ errors Protolude.putText
+        <> putC "Failure. " Red
+        <> die "exiting."
 
-runAll :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
-runAll = do
+runAllSteps :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
+runAllSteps = do
   liftIO $ SIO.hSetBuffering SIO.stdout SIO.NoBuffering
   runWorkDir -- setting up the working directory
   runPre     -- preprocessing steps
@@ -171,6 +149,9 @@ runAsyncs = (cmds <$> ask) >>= \case
  where
   mkAsyncs :: [Cmd] -> [(Text, Text)] -> WorkDir -> IO [Async CmdResult]
   mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
+  kbInstallHandler :: (MonadIO m) => IO () -> m SPS.Handler
+  kbInstallHandler h =
+    liftIO $ SPS.installHandler SPS.keyboardSignal (SPS.Catch h) Nothing
 
 conclude :: (MonadWriter [Text] m, MonadIO m) => Bool -> CmdResult -> m ()
 conclude _ (Timeout c) =
@@ -238,34 +219,36 @@ type P  = PT.Process
 type PC = PT.ProcessConfig
   () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
 
-maybeM :: Monad m => m b -> (a -> m b) -> m (Maybe a) -> m b
-maybeM n j x = maybe n j =<< x
-
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
-  fromMaybe (Timeout c) <$> maybeTimeout timeout io
+  fromMaybe (Timeout c) <$> maybeTimeout timeout go
  where
-  io = withSinkFileNoBuffering (getStringWD out) $ \outSink ->
-    withSinkFileNoBuffering (getStringWD err) $ \errSink ->
-      ( catch (PT.withProcess pc (go outSink errSink))
-      $ \(e :: IOException) -> return $ ThrewException c e
-      )
-  getStringWD = toS . getfn wd
-  go
-    :: ConduitT ByteString Void IO ()
-    -> ConduitT ByteString Void IO ()
-    -> P
-    -> IO CmdResult
-  go outSink errSink p =
+  getFilename wdT fc = toS $ wdT <> "/" <> toS (filename fc)
+
+  outFile = getFilename wd out
+  errFile = getFilename wd err
+
+  go :: IO CmdResult
+  go = withSinkFileNoBuffering outFile $ \sout ->
+    withSinkFileNoBuffering errFile
+      $ \serr -> withSafeP $ \p -> logic sout serr p
+
+  logic sout serr p =
     finalize c
-      <$> withAsyncConduitsOnProcess
-            p
-            ConduitSpec {conduit = outSink, ccheck = filecheck out}
-            ConduitSpec {conduit = errSink, ccheck = filecheck err}
-            waitEitherCatchCancel
-      <*> maybeM (PT.stopProcess p <&> const Killed)
-                 (return . Died)
-                 (PT.getExitCode p)
+      <$> withAsyncs (doFilter (filecheck out) (PT.getStdout p) sout)
+                     (doFilter (filecheck err) (PT.getStderr p) serr)
+                     waitEitherCatchCancel
+      <*> (PT.getExitCode p >>= \case
+            Nothing -> const Killed <$> PT.stopProcess p
+            Just ec -> return $ Died ec
+          )
+
+  withSafeP :: (P -> IO CmdResult) -> IO CmdResult
+  withSafeP f = catchIOE $ PT.withProcess pc f
+
+  catchIOE :: IO CmdResult -> IO CmdResult
+  catchIOE ioOp =
+    catch ioOp $ \(e :: IOException) -> return $ ThrewException c e
 
   pc :: PC
   pc =
@@ -276,47 +259,14 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
       & PT.setStderr PT.createSource
       & PT.setStdin PT.closed
 
-getfn :: Text -> FileCheck Check -> Text
-getfn wd fc = wd <> "/" <> toS (filename fc)
-
 maybeTimeout :: Maybe Int -> IO a -> IO (Maybe a)
 maybeTimeout i io = case i of
   Nothing -> Just <$> io
   Just t  -> ST.timeout (100000 * t) io
 
-kbInstallHandler :: (MonadIO m) => IO () -> m SPS.Handler
-kbInstallHandler h =
-  liftIO $ SPS.installHandler SPS.keyboardSignal (SPS.Catch h) Nothing
-
--- | withConduitSinks runs an IO action. It gives two conduit testing asyncs in scope.
--- | THROWS PatternMatched
-withAsyncConduitsOnProcess
-  :: PT.Process () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
-  -> ConduitSpec -- stdout conduit spec
-  -> ConduitSpec -- stderr conduit spec
-  -> (Async () -> Async () -> IO b) -- the lambda-wrapped IO action
-  -> IO b
-withAsyncConduitsOnProcess p cOut cErr = withAsyncs
-  (doFilter (ccheck cOut) (PT.getStdout p) (conduit cOut))
-  (doFilter (ccheck cErr) (PT.getStderr p) (conduit cErr))
-
 withAsyncs :: IO () -> IO () -> (Async () -> Async () -> IO b) -> IO b
 withAsyncs io1 io2 f =
   liftIO $ withAsync io1 $ \a1 -> withAsync io2 $ \a2 -> f a1 a2
-
--- | THROWS PatternMatched
-doFilter
-  :: Check
-  -> ConduitT () ByteString IO ()
-  -> ConduitT ByteString Void IO ()
-  -> IO ()
-doFilter behavior source sink =
-  runConduit
-    $              source
-    .|             CB.lines
-    .|             makeBehavior behavior
-    `fuseUpstream` CC.unlinesAscii
-    `fuseUpstream` sink
 
 -- | runs an IO action with a file sink in lambda scope
 withSinkFileNoBuffering

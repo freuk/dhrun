@@ -1,13 +1,7 @@
 {-# language DeriveAnyClass #-}
 {-# language FlexibleInstances #-}
 {-# language FlexibleContexts #-}
-{-# language RecordWildCards #-}
-{-# language OverloadedStrings #-}
-{-# language LambdaCase #-}
-{-# language MultiParamTypeClasses #-}
-{-# language DerivingStrategies #-}
 {-# language DeriveGeneric #-}
-{-# language NoImplicitPrelude #-}
 
 {-|
 Module      : Dhrun.AesonTypes

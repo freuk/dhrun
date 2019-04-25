@@ -1,12 +1,4 @@
-{-# language DerivingStrategies #-}
-{-# language FlexibleContexts #-}
 {-# language RecordWildCards #-}
-{-# language DataKinds #-}
-{-# language FlexibleInstances #-}
-{-# language ScopedTypeVariables #-}
-{-# language TypeOperators #-}
-{-# language NoImplicitPrelude #-}
-
 {-|
 Module      : Dhrun.Run
 Description : runner
@@ -23,6 +15,7 @@ module Dhrun.Pure
   , envVars
   , mapTuple
   , finalize
+  , stdToS
   )
 where
 
@@ -38,7 +31,6 @@ import qualified Data.Map.Merge.Lazy           as DMM
                                                 , zipWithMatched
                                                 )
 import           Control.Arrow                  ( (***) )
-
 
 data CmdResult =
     Timeout Cmd
@@ -61,6 +53,10 @@ data ProcessWas = Died ExitCode | Killed
 
 data Std = Out | Err deriving (Show)
 
+stdToS :: Std -> Text
+stdToS Out = "stdout"
+stdToS Err = "stderr"
+
 noChecks :: Cmd -> Bool
 noChecks Cmd {..} =
   null (wants $ filecheck out) && null (wants $ filecheck err)
@@ -82,7 +78,6 @@ forcedEnvVars vs = (\EnvVar {..} -> (toS varname, toS value)) <$> vs
 mapTuple :: (a -> b) -> (a, a) -> (b, b)
 mapTuple = join (***)
 
-
 finalize
   :: Cmd
   -> Either (Either SomeException ()) (Either SomeException ())
@@ -101,3 +96,4 @@ finalize c (Right (Left e)) _ = case fromException e of
   Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
   Just ThrowFoundAllWants    -> FoundAll c
   Nothing                    -> ConduitException c Err
+

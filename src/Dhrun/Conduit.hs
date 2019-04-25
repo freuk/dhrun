@@ -1,13 +1,3 @@
-{-# language DerivingStrategies #-}
-{-# language LambdaCase #-}
-{-# language FlexibleContexts #-}
-{-# language RecordWildCards #-}
-{-# language DataKinds #-}
-{-# language FlexibleInstances #-}
-{-# language ScopedTypeVariables #-}
-{-# language TypeOperators #-}
-{-# language NoImplicitPrelude #-}
-
 {-|
 Module      : Dhrun.Run
 Description : runner
@@ -17,20 +7,41 @@ Maintainer  : fre@freux.fr
 -}
 
 module Dhrun.Conduit
-  ( makeBehavior
+  ( doFilter
   )
 where
 
 import           Dhrun.Types.Cfg
 import           Dhrun.Pure
 import           Protolude
+import qualified Data.ByteString               as B
+import           Control.Exception.Base         ( throw )
+import qualified Data.Conduit.Binary           as CB
+                                                ( lines )
+import qualified Data.Conduit.Combinators      as CC
+                                                ( unlinesAscii )
 import           Data.Conduit                   ( ConduitT
                                                 , yield
                                                 , await
+                                                , runConduit
+                                                , fuseUpstream
+                                                , (.|)
                                                 )
-import qualified Data.ByteString               as B
-import           Control.Exception.Base         ( throw )
 
+-- | THROWS PatternMatched
+doFilter
+  :: (Monad m)
+  => Check
+  -> ConduitT () ByteString m ()
+  -> ConduitT ByteString Void m ()
+  -> m ()
+doFilter behavior source sink =
+  runConduit
+    $              source
+    .|             CB.lines
+    .|             makeBehavior behavior
+    `fuseUpstream` CC.unlinesAscii
+    `fuseUpstream` sink
 
 -- | makeBehavior builds an IO conduit that throws a PatternMatched when
 -- all wanted pattern or one avoided pattern are found
