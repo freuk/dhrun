@@ -249,64 +249,74 @@ runMultipleV getter desc = getter <$> ask >>= \case
                 <> " command."
                 <> x
 
+type P  = PT.Process
+  () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
+type PC = PT.ProcessConfig
+  () (ConduitT () ByteString IO ()) (ConduitT () ByteString IO ())
+
+maybeM :: Monad m => m b -> (a -> m b) -> m (Maybe a) -> m b
+maybeM n j x = maybe n j =<< x
+
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
-  fromMaybe (Timeout c) <$> maybeTimeout
-    timeout
-    (withConduitSinks (getfn out) (getfn err) $ \outSink errSink ->
-      ( catch (PT.withProcess pc $ go outSink errSink)
+  fromMaybe (Timeout c) <$> maybeTimeout timeout io
+ where
+  io = withSinkFileNoBuffering (getStringWD out) $ \outSink ->
+    withSinkFileNoBuffering (getStringWD err) $ \errSink ->
+      ( catch (PT.withProcess pc (go outSink errSink))
       $ \(e :: IOException) -> return $ ThrewException c e
       )
-    )
- where
+  getStringWD = toS . getfn wd
   go
     :: ConduitT ByteString Void IO ()
     -> ConduitT ByteString Void IO ()
-    -> PT.Process
-         ()
-         (ConduitT () ByteString IO ())
-         (ConduitT () ByteString IO ())
+    -> P
     -> IO CmdResult
-  go outSink errSink p = do
-    conduitOutput <- withAsyncConduitsOnProcess
-      p
-      ConduitSpec {conduit = outSink, ccheck = filecheck out}
-      ConduitSpec {conduit = errSink, ccheck = filecheck err}
-      waitEitherCatchCancel
-    processOutput <- PT.getExitCode p >>= \case
-      Just ec -> return $ Died ec
-      Nothing -> PT.stopProcess p >> return Killed
-    return $ case (processOutput, conduitOutput) of
-      (Died (ExitFailure n), _) -> DiedFailure c n
-      (_, Left (Right ())) ->
-        if noChecks then DiedLegal c else OutputLacking c Out
-      (_, Right (Right ())) ->
-        if noChecks then DiedLegal c else OutputLacking c Err
-      (_, Left (Left e)) -> case fromException e of
-        Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Out
-        Just ThrowFoundAllWants    -> FoundAll c
-        Nothing                    -> ConduitException c Out
-      (_, Right (Left e)) -> case fromException e of
-        Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
-        Just ThrowFoundAllWants    -> FoundAll c
-        Nothing                    -> ConduitException c Err
+  go outSink errSink p =
+    finalize c
+      <$> withAsyncConduitsOnProcess
+            p
+            ConduitSpec {conduit = outSink, ccheck = filecheck out}
+            ConduitSpec {conduit = errSink, ccheck = filecheck err}
+            waitEitherCatchCancel
+      <*> maybeM (PT.stopProcess p <&> const Killed)
+                 (return . Died)
+                 (PT.getExitCode p)
 
-  noChecks = null (wants $ filecheck out) && null (wants $ filecheck err)
-
-  pc
-    :: PT.ProcessConfig
-         ()
-         (ConduitT () ByteString IO ())
-         (ConduitT () ByteString IO ())
+  pc :: PC
   pc =
-    PT.setStdout PT.createSource
-      $ PT.setStderr PT.createSource
-      $ PT.setStdin PT.closed
-      $ PT.setEnv (mapTuple toS <$> envVars vars passvars fullExternEnv)
-      $ PT.setWorkingDir (toS wd)
-      $ PT.proc (toS name) (toS <$> args)
-  getfn :: FileCheck Check -> Text
-  getfn fc = wd <> "/" <> toS (filename fc)
+    PT.proc (toS name) (toS <$> args)
+      & PT.setWorkingDir (toS wd)
+      & PT.setEnv (mapTuple toS <$> envVars vars passvars fullExternEnv)
+      & PT.setStdout PT.createSource
+      & PT.setStderr PT.createSource
+      & PT.setStdin PT.closed
+
+finalize
+  :: Cmd
+  -> Either (Either SomeException ()) (Either SomeException ())
+  -> ProcessWas
+  -> CmdResult
+finalize c _ (Died (ExitFailure n)) = DiedFailure c n
+finalize c (Left (Right ())) _ =
+  if noChecks c then DiedLegal c else OutputLacking c Out
+finalize c (Right (Right ())) _ =
+  if noChecks c then DiedLegal c else OutputLacking c Err
+finalize c (Left (Left e)) _ = case fromException e of
+  Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Out
+  Just ThrowFoundAllWants    -> FoundAll c
+  Nothing                    -> ConduitException c Out
+finalize c (Right (Left e)) _ = case fromException e of
+  Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
+  Just ThrowFoundAllWants    -> FoundAll c
+  Nothing                    -> ConduitException c Err
+
+noChecks :: Cmd -> Bool
+noChecks Cmd {..} =
+  null (wants $ filecheck out) && null (wants $ filecheck err)
+
+getfn :: Text -> FileCheck Check -> Text
+getfn wd fc = wd <> "/" <> toS (filename fc)
 
 maybeTimeout :: Maybe Int -> IO a -> IO (Maybe a)
 maybeTimeout i io = case i of
@@ -346,16 +356,6 @@ doFilter behavior source sink =
     .|             makeBehavior behavior
     `fuseUpstream` CC.unlinesAscii
     `fuseUpstream` sink
-
--- | runs an IO action with two conduits in lambda scope
-withConduitSinks
-  :: Text -- stdout filename
-  -> Text -- stderr filename
-  -> (ConduitT ByteString o IO () -> ConduitT ByteString o1 IO () -> IO b)
-  -> IO b
-withConduitSinks outName errName lambdaIO =
-  withSinkFileNoBuffering (toS outName) $ \outSink ->
-    withSinkFileNoBuffering (toS errName) $ \errSink -> lambdaIO outSink errSink
 
 -- | runs an IO action with a file sink in lambda scope
 withSinkFileNoBuffering
