@@ -16,7 +16,7 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhrun.Types
+module Dhrun.Dhall
   ( Cfg(..)
   , Cmd(..)
   , EnvVar(..)

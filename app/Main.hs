@@ -19,7 +19,7 @@ where
 import           Protolude
 
 import qualified Prelude                        ( print )
-import           Dhrun.Internal                as DI
+import           Dhrun.Cfg                     as DI
 import           Dhrun.Run                     as DR
 import           Options.Applicative           as OA
 import           Dhall

@@ -13,7 +13,7 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhrun.Internal
+module Dhrun.Cfg
   ( Cfg(..)
   , Verbosity(..)
   , Cmd(..)
@@ -24,10 +24,6 @@ module Dhrun.Internal
   , Check(..)
   , FileCheck(..)
   , Pattern(..)
-  , toInternal
-  , fromInternal
-  , toInternalCmd
-  , fromInternalCmd
   , inputCfg
   , decodeCfgFile
   , decodeCfg
@@ -37,8 +33,8 @@ module Dhrun.Internal
 where
 
 import           Dhall
-import qualified Dhrun.Types                   as DT
-import qualified Dhrun.AesonTypes              as DAT
+import qualified Dhrun.Dhall                   as DT
+import qualified Dhrun.Yaml                   as DAT
 import           Data.Yaml.Internal
 import           Protolude
 import qualified Prelude                        ( String )
@@ -150,17 +146,6 @@ fromInternal Cfg {..} = DT.Cfg
   , post     = toS <$> post
   , verbose  = verbosity == Verbose
   }
-
-{-data Cmd = Cmd -}
-    {-name        :: CommandName-}
-  {-, args        :: [Arg]-}
-  {-, vars        :: [EnvVar]-}
-  {-, passvars    :: [VarName]-}
-  {-, out         :: FileCheck Check-}
-  {-, err         :: FileCheck Check-}
-  {-, postchecks  :: [FileCheck Check]-}
-  {-, timeout     :: Maybe Int-}
-  {-} deriving (Eq, Show)-}
 
 toInternalCmd :: DT.Cmd -> Cmd
 toInternalCmd DT.Cmd {..} = Cmd

@@ -17,18 +17,15 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhrun.AesonTypes
-  ( Cfg(..)
-  , decodeCfgFile
+module Dhrun.Yaml
+  ( decodeCfgFile
   , decodeCfg
   , encodeCfg
   , encodeCmd
-  , fromInternal
-  , toInternal
   )
 where
 
-import qualified Dhrun.Types                   as DT
+import qualified Dhrun.Dhall                   as DT
 import           Protolude
 import           Dhall
 import           Data.Yaml

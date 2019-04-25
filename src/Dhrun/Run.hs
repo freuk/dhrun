@@ -22,7 +22,7 @@ module Dhrun.Run
   )
 where
 
-import           Dhrun.Internal
+import           Dhrun.Cfg
 import           Dhrun.Pureutils
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
@@ -77,23 +77,32 @@ putC content color = setC color *> putT content *> setC White
   where setC c = liftIO $ setSGR [SetColor Foreground Dull c]
 
 data CmdResult =
-      Timeout Cmd
-    | DiedLegal Cmd
-    | ThrewException Cmd IOException
-    | DiedFailure Cmd Int
-    | FoundAll Cmd
-    | FoundIllegal Cmd Text Std
-    | OutputLacking Cmd Std
-    | ConduitException Cmd Std deriving (Show)
+    Timeout Cmd
+  | DiedLegal Cmd
+  | ThrewException Cmd IOException
+  | DiedFailure Cmd Int
+  | FoundAll Cmd
+  | FoundIllegal Cmd Text Std
+  | OutputLacking Cmd Std
+  | ConduitException Cmd Std
+  deriving (Show)
 
 data MonitoringResult =
     ThrowFoundAllWants
   | ThrowFoundAnAvoid Text
   deriving (Show, Typeable)
 
-instance Exception MonitoringResult
+data ProcessWas = Died ExitCode | Killed
 
 data Std = Out | Err deriving (Show)
+
+data ConduitSpec = ConduitSpec {
+  conduit :: ConduitT ByteString Void IO (),
+  ccheck   :: Check
+}
+
+instance Exception MonitoringResult
+
 stdToS :: Std -> Text
 stdToS Out = "stdout"
 stdToS Err = "stderr"
@@ -176,59 +185,57 @@ runAsyncs = (cmds <$> ask) >>= \case
   l  -> do
     putV "async step: start"
     wd <- workdir <$> ask
-    let noWants = null $ mconcat (wants . filecheck . out <$> l) ++ mconcat
+    let haveWants = null $ mconcat (wants . filecheck . out <$> l) ++ mconcat
           (wants . filecheck . err <$> l)
     externEnv <- (\lenv -> (\(n, v) -> (toS n, toS v)) <$> lenv)
       <$> liftIO SE.getEnvironment
     asyncs <- liftIO $ mkAsyncs l externEnv wd
     _      <- liftIO $ kbInstallHandler $ for_ asyncs cancel
     putV "processes started."
-    liftIO (waitAnyCancel asyncs) >>= \(_, x) -> case x of
-      Timeout c ->
-        tell $ "The following command timed out:" : T.lines (toS $ encodeCmd c)
-      DiedFailure c n ->
-        tell
-          $  "The following command died with exit code "
-          <> show n
-          <> " :"
-          :  T.lines (toS $ encodeCmd c)
-      DiedLegal c -> if noWants
-        then putText "All commands exited successfully."
-        else tell
-          [ "command exited:"
-              <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
-          ]
-      FoundAll c ->
-        putText
-          $ "All searched patterns in the following command were found. Killing all processes.\n "
-          <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
-      FoundIllegal c t e ->
-        tell
-          $  "The illegal pattern "
-          <> t
-          <> " was found in the output of this process' "
-          <> stdToS e
-          <> ":"
-          :  T.lines (toS $ encodeCmd c)
-      OutputLacking c e ->
-        tell
-          $  "This process' "
-          <> stdToS e
-          <> " was found to be lacking pattern(s):"
-          :  T.lines (toS $ encodeCmd c)
-      ConduitException c e ->
-        tell
-          $  "This process ended with a conduit exception:"
-          <> stdToS e
-          :  T.lines (toS $ encodeCmd c)
-      ThrewException c e ->
-        tell
-          $  "This process' execution ended with an exception: " <> show e
-          :  T.lines (toS $ encodeCmd c)
+    snd <$> liftIO (waitAnyCancel asyncs) >>= conclude haveWants
     putV "async step: done"
  where
   mkAsyncs :: [Cmd] -> [(Text, Text)] -> WorkDir -> IO [Async CmdResult]
   mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
+
+conclude :: (MonadWriter [Text] m, MonadIO m) => Bool -> CmdResult -> m ()
+conclude _ (Timeout c) =
+  tell $ "The following command timed out:" : T.lines (toS $ encodeCmd c)
+conclude _ (DiedFailure c n) =
+  tell
+    $  "The following command died with exit code "
+    <> show n
+    <> " :"
+    :  T.lines (toS $ encodeCmd c)
+conclude True  (DiedLegal _) = putText "All commands exited successfully."
+conclude False (DiedLegal c) = tell
+  [ "command exited:"
+      <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
+  ]
+conclude _ (FoundAll c) =
+  putText
+    $ "All searched patterns in the following command were found. Killing all processes.\n "
+    <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
+conclude _ (FoundIllegal c t e) =
+  tell
+    $  "The illegal pattern "
+    <> t
+    <> " was found in the output of this process' "
+    <> stdToS e
+    <> ":"
+    :  T.lines (toS $ encodeCmd c)
+conclude _ (OutputLacking c e) =
+  tell
+    $  "This process' "
+    <> stdToS e
+    <> " was found to be lacking pattern(s):"
+    :  T.lines (toS $ encodeCmd c)
+conclude _ (ConduitException c e) =
+  tell $ "This process ended with a conduit exception:" <> stdToS e : T.lines
+    (toS $ encodeCmd c)
+conclude _ (ThrewException c e) =
+  tell $ "This process' execution ended with an exception: " <> show e : T.lines
+    (toS $ encodeCmd c)
 
 runMultipleV
   :: (MonadIO m, MonadReader Cfg m) => (Cfg -> [Text]) -> Text -> m ()
@@ -252,7 +259,6 @@ runMultipleV getter desc = getter <$> ask >>= \case
                 <> " command."
                 <> x
 
-data ProcessWas = Died ExitCode | Killed
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
   fromMaybe (Timeout c) <$> maybeTimeout
@@ -320,11 +326,6 @@ maybeTimeout i io = case i of
 kbInstallHandler :: (MonadIO m) => IO () -> m SPS.Handler
 kbInstallHandler h =
   liftIO $ SPS.installHandler SPS.keyboardSignal (SPS.Catch h) Nothing
-
-data ConduitSpec = ConduitSpec {
-  conduit :: ConduitT ByteString Void IO (),
-  ccheck   :: Check
-}
 
 -- | withConduitSinks runs an IO action. It gives two conduit testing asyncs in scope.
 -- | THROWS PatternMatched

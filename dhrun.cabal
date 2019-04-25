@@ -52,7 +52,7 @@ executable dhrun
 
 library dhrun-lib
   hs-source-dirs: src
-  exposed-modules: Dhrun.Internal, Dhrun.Types, Dhrun.AesonTypes, Dhrun.Run, Dhrun.Pureutils
+  exposed-modules: Dhrun.Cfg, Dhrun.Dhall, Dhrun.Yaml, Dhrun.Run, Dhrun.Pureutils
   build-depends:
     base,
     ansi-terminal,

@@ -21,7 +21,7 @@ module Dhrun.Pureutils
   )
 where
 
-import           Dhrun.Internal
+import           Dhrun.Cfg
 import           Protolude
 import qualified Data.Map.Lazy                 as DM
                                                 ( fromList
