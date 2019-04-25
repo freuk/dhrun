@@ -22,15 +22,14 @@ module Dhrun.Run
   )
 where
 
-import           Dhrun.Cfg
-import           Dhrun.Pureutils
+import           Dhrun.Types.Cfg
+import           Dhrun.Pure
+import           Dhrun.Conduit
 import           Protolude
 import           System.Exit                    ( ExitCode(..) )
 import           Data.Conduit                   ( ConduitT
                                                 , runConduit
                                                 , fuseUpstream
-                                                , yield
-                                                , await
                                                 , (.|)
                                                 )
 import qualified Data.Conduit.Combinators      as CC
@@ -60,10 +59,6 @@ import           Control.Monad.Writer           ( MonadWriter
                                                 , tell
                                                 , runWriterT
                                                 )
-import qualified Data.ByteString               as B
-import           Control.Exception.Base         ( Exception
-                                                , throw
-                                                )
 import qualified System.Directory              as SD
                                                 ( createDirectoryIfMissing )
 import qualified System.Environment            as SE
@@ -87,10 +82,6 @@ data CmdResult =
   | ConduitException Cmd Std
   deriving (Show)
 
-data MonitoringResult =
-    ThrowFoundAllWants
-  | ThrowFoundAnAvoid Text
-  deriving (Show, Typeable)
 
 data ProcessWas = Died ExitCode | Killed
 
@@ -101,7 +92,6 @@ data ConduitSpec = ConduitSpec {
   ccheck   :: Check
 }
 
-instance Exception MonitoringResult
 
 stdToS :: Std -> Text
 stdToS Out = "stdout"
@@ -356,30 +346,6 @@ doFilter behavior source sink =
     .|             makeBehavior behavior
     `fuseUpstream` CC.unlinesAscii
     `fuseUpstream` sink
-
--- | makeBehavior builds an IO conduit that throws a PatternMatched when
--- all wanted pattern or one avoided pattern are found
-makeBehavior :: Check -> ConduitT ByteString ByteString IO ()
-makeBehavior Check {..} = case wants of
-  [] -> cleanLooper
-  as -> expectfulLooper $ toS <$> as
- where
-
-  cleanLooper :: ConduitT ByteString ByteString IO ()
-  cleanLooper = noAvoidsAndOtherwise $ \b -> yield b >> cleanLooper
-
-  expectfulLooper :: [ByteString] -> ConduitT ByteString ByteString IO ()
-  expectfulLooper [] = throw ThrowFoundAllWants
-  expectfulLooper l =
-    noAvoidsAndOtherwise
-      $ \b -> yield b
-          >> expectfulLooper (filter (not . flip B.isInfixOf b) (toS <$> l))
-
-  noAvoidsAndOtherwise otherwiseConduit = await >>= \case
-    Just b -> case filter (`B.isInfixOf` b) (toS <$> avoids) of
-      []     -> otherwiseConduit b
-      xh : _ -> yield b >> throw (ThrowFoundAnAvoid $ toS xh)
-    Nothing -> return ()
 
 -- | runs an IO action with two conduits in lambda scope
 withConduitSinks

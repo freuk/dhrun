@@ -13,7 +13,7 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhrun.Cfg
+module Dhrun.Types.Cfg
   ( Cfg(..)
   , Verbosity(..)
   , Cmd(..)
@@ -33,8 +33,8 @@ module Dhrun.Cfg
 where
 
 import           Dhall
-import qualified Dhrun.Dhall                   as DT
-import qualified Dhrun.Yaml                   as DAT
+import qualified Dhrun.Types.Dhall             as DT
+import qualified Dhrun.Types.Yaml              as DAT
 import           Data.Yaml.Internal
 import           Protolude
 import qualified Prelude                        ( String )

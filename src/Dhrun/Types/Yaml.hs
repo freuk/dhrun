@@ -17,7 +17,7 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhrun.Yaml
+module Dhrun.Types.Yaml
   ( decodeCfgFile
   , decodeCfg
   , encodeCfg
@@ -25,7 +25,7 @@ module Dhrun.Yaml
   )
 where
 
-import qualified Dhrun.Dhall                   as DT
+import qualified Dhrun.Types.Dhall                   as DT
 import           Protolude
 import           Dhall
 import           Data.Yaml

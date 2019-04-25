@@ -15,13 +15,13 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 
-module Dhrun.Pureutils
+module Dhrun.Pure
   ( envVars
   , mapTuple
   )
 where
 
-import           Dhrun.Cfg
+import           Dhrun.Types.Cfg
 import           Protolude
 import qualified Data.Map.Lazy                 as DM
                                                 ( fromList

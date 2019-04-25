@@ -19,7 +19,7 @@ import           Protolude
 {-import           Control.Monad.Mock-}
 {-import           Control.Monad.Mock.TH-}
 
-import           Dhrun.Cfg
+import           Dhrun.Types.Cfg
 import qualified Data.ByteString.Char8         as B8
 import           Control.Monad.Writer
 import           System.IO.Error
