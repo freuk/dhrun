@@ -28,9 +28,7 @@ import qualified System.Posix.Signals          as SPS
 import qualified Data.Conduit.Process.Typed    as PT
 import qualified Data.Conduit.Binary           as CB
 import qualified Data.Text                     as T
-                                                ( isInfixOf
-                                                , lines
-                                                )
+                                                ( isInfixOf )
 import qualified System.IO                     as SIO
                                                 ( BufferMode(NoBuffering)
                                                 , hSetBuffering
@@ -102,11 +100,11 @@ runWorkDir = do
 
 runChecks :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runChecks = (cmds <$> ask) >>= \case
-  [] -> putV "post-mortem check step: no processes."
+  [] -> pu "no processes"
   l  -> do
-    putV "post-mortem checks: start"
+    pu "start"
     for_ l $ \Cmd {..} -> do
-      putV $ "running post-mortem checks for " <> toS name <> " " <> mconcat
+      pu $ "running post-mortem checks for " <> toS name <> " " <> mconcat
         (intersperse " " (toS <$> args))
       for_ postchecks $ \FileCheck {..} -> do
         contents <- liftIO $ readFile (toS filename)
@@ -128,84 +126,48 @@ runChecks = (cmds <$> ask) >>= \case
               <> toS filename
             ]
           )
-        tell ["something"]
-    putV "post-mortem checks: done"
+    pu " done"
+ where
+  pu t = putV $ "check step:" <> t
 
 runAsyncs :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAsyncs = (cmds <$> ask) >>= \case
-  [] -> putV "async step: no processes."
+  [] -> pu "async step: no processes."
   l  -> do
-    putV "async step: start"
-    wd <- workdir <$> ask
-    let haveWants = null $ mconcat (wants . filecheck . out <$> l) ++ mconcat
-          (wants . filecheck . err <$> l)
-    externEnv <- (\lenv -> (\(n, v) -> (toS n, toS v)) <$> lenv)
-      <$> liftIO SE.getEnvironment
-    asyncs <- liftIO $ mkAsyncs l externEnv wd
-    _      <- liftIO $ kbInstallHandler $ for_ asyncs cancel
-    putV "processes started."
-    snd <$> liftIO (waitAnyCancel asyncs) >>= conclude haveWants
-    putV "async step: done"
+    pu "async step: start"
+    wd        <- workdir <$> ask
+    externEnv <- liftIO SE.getEnvironment <&> (mapTuple toS <$>)
+    asyncs    <- liftIO $ mkAsyncs l externEnv wd
+    _         <- kbInstallHandler $ for_ asyncs cancel
+    pu "async step: started processes"
+    liftIO (waitAnyCancel asyncs)
+      <&> snd
+      <&> concludeCmd (any noWants l)
+      >>= either tell putText
+    pu "async step: done"
  where
+  pu t = putV $ "async step:" <> t
   mkAsyncs :: [Cmd] -> [(Text, Text)] -> WorkDir -> IO [Async CmdResult]
   mkAsyncs l externEnv wd = for l (async . runCmd externEnv wd)
   kbInstallHandler :: (MonadIO m) => IO () -> m SPS.Handler
   kbInstallHandler h =
     liftIO $ SPS.installHandler SPS.keyboardSignal (SPS.Catch h) Nothing
 
-conclude :: (MonadWriter [Text] m, MonadIO m) => Bool -> CmdResult -> m ()
-conclude _ (Timeout c) =
-  tell $ "The following command timed out:" : T.lines (toS $ encodeCmd c)
-conclude _ (DiedFailure c n) =
-  tell
-    $  "The following command died with exit code "
-    <> show n
-    <> " :"
-    :  T.lines (toS $ encodeCmd c)
-conclude True  (DiedLegal _) = putText "All commands exited successfully."
-conclude False (DiedLegal c) = tell
-  [ "command exited:"
-      <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
-  ]
-conclude _ (FoundAll c) =
-  putText
-    $ "All searched patterns in the following command were found. Killing all processes.\n "
-    <> mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
-conclude _ (FoundIllegal c t e) =
-  tell
-    $  "The illegal pattern "
-    <> t
-    <> " was found in the output of this process' "
-    <> stdToS e
-    <> ":"
-    :  T.lines (toS $ encodeCmd c)
-conclude _ (OutputLacking c e) =
-  tell
-    $  "This process' "
-    <> stdToS e
-    <> " was found to be lacking pattern(s):"
-    :  T.lines (toS $ encodeCmd c)
-conclude _ (ConduitException c e) =
-  tell $ "This process ended with a conduit exception:" <> stdToS e : T.lines
-    (toS $ encodeCmd c)
-conclude _ (ThrewException c e) =
-  tell $ "This process' execution ended with an exception: " <> show e : T.lines
-    (toS $ encodeCmd c)
-
 runMultipleV
   :: (MonadIO m, MonadReader Cfg m) => (Cfg -> [Text]) -> Text -> m ()
 runMultipleV getter desc = getter <$> ask >>= \case
-  [] -> putV $ "no " <> desc <> " commands to run."
+  [] -> pu $ "no " <> desc <> " commands to run."
   l  -> do
-    putV $ desc <> ": start"
+    pu $ desc <> ": start"
     wdirFP <- ask <&> workdir <&> \(WorkDir wdt) -> wdt
     for_ l $ runOne wdirFP
-    putV $ desc <> ": done"
+    pu $ desc <> ": done"
  where
+  pu t = putV $ desc <> " step:" <> t
   runOne wdirFP x =
     liftIO (PT.runProcess $ PT.setWorkingDir (toS wdirFP) (PT.shell $ toS x))
       >>= \case
-            ExitSuccess -> putV ("ran one " <> desc <> " command.")
+            ExitSuccess -> pu ("ran one " <> desc <> " command.")
             ExitFailure _ ->
               liftIO
                 $  die
@@ -214,15 +176,18 @@ runMultipleV getter desc = getter <$> ask >>= \case
                 <> " command."
                 <> x
 
--- | Runs a single command.
+-- | Runs a single command. should be the only 'complex' function in this codebase.
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
-  fromMaybe (Timeout c) <$> maybeTimeout timeout go
+  fromMaybe (Timeout c) <$> maybeTimeout go timeout
  where
+  -- | output files
   outFile :: FilePath
   outFile = getWdFilename wd out
   errFile :: FilePath
   errFile = getWdFilename wd err
+
+  -- | process configuration
   pc :: PC
   pc =
     PT.proc (toS name) (toS <$> args)
@@ -232,6 +197,7 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
       & PT.setStderr PT.createSource
       & PT.setStdin PT.closed
 
+  -- | lambda-scoped resource acquisition: stdin/out conduits and starting the process
   go :: IO CmdResult
   go = with3 (withSinkFileNoBuffering outFile)
              (withSinkFileNoBuffering errFile)
@@ -242,7 +208,7 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
   -- do the streaming monitoring.
   logic :: Sink -> Sink -> P -> IO CmdResult
   logic sout serr p =
-    finalize c
+    finalizeCmd c
       <$> with2 (withAsync $ monitor (filecheck out) (PT.getStdout p) sout)
                 (withAsync $ monitor (filecheck err) (PT.getStderr p) serr)
                 waitEitherCatchCancel
@@ -251,11 +217,9 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
             Just ec -> return $ Died ec
           )
 
--- | Times out an IO command if necessary
-maybeTimeout :: Maybe Int -> IO a -> IO (Maybe a)
-maybeTimeout i io = case i of
-  Nothing -> Just <$> io
-  Just t  -> ST.timeout (100000 * t) io
+-- | May timeout an IO command.
+maybeTimeout :: IO a -> Maybe Int -> IO (Maybe a)
+maybeTimeout io = maybe (Just <$> io) (\t -> ST.timeout (100000 * t) io)
 
 -- | runs an IO action with a preconfigured process (PC) in lambda scope (P)
 withWrappedSafeP :: Cmd -> PC -> (P -> IO CmdResult) -> IO CmdResult
