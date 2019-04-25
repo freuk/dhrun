@@ -71,22 +71,6 @@ putC :: MonadIO m => Text -> Color -> m ()
 putC content color = setC color *> putT content *> setC White
   where setC c = liftIO $ setSGR [SetColor Foreground Dull c]
 
-data CmdResult =
-    Timeout Cmd
-  | DiedLegal Cmd
-  | ThrewException Cmd IOException
-  | DiedFailure Cmd Int
-  | FoundAll Cmd
-  | FoundIllegal Cmd Text Std
-  | OutputLacking Cmd Std
-  | ConduitException Cmd Std
-  deriving (Show)
-
-
-data ProcessWas = Died ExitCode | Killed
-
-data Std = Out | Err deriving (Show)
-
 data ConduitSpec = ConduitSpec {
   conduit :: ConduitT ByteString Void IO (),
   ccheck   :: Check
@@ -291,29 +275,6 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
       & PT.setStdout PT.createSource
       & PT.setStderr PT.createSource
       & PT.setStdin PT.closed
-
-finalize
-  :: Cmd
-  -> Either (Either SomeException ()) (Either SomeException ())
-  -> ProcessWas
-  -> CmdResult
-finalize c _ (Died (ExitFailure n)) = DiedFailure c n
-finalize c (Left (Right ())) _ =
-  if noChecks c then DiedLegal c else OutputLacking c Out
-finalize c (Right (Right ())) _ =
-  if noChecks c then DiedLegal c else OutputLacking c Err
-finalize c (Left (Left e)) _ = case fromException e of
-  Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Out
-  Just ThrowFoundAllWants    -> FoundAll c
-  Nothing                    -> ConduitException c Out
-finalize c (Right (Left e)) _ = case fromException e of
-  Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
-  Just ThrowFoundAllWants    -> FoundAll c
-  Nothing                    -> ConduitException c Err
-
-noChecks :: Cmd -> Bool
-noChecks Cmd {..} =
-  null (wants $ filecheck out) && null (wants $ filecheck err)
 
 getfn :: Text -> FileCheck Check -> Text
 getfn wd fc = wd <> "/" <> toS (filename fc)

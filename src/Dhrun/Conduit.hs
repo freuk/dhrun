@@ -17,12 +17,12 @@ Maintainer  : fre@freux.fr
 -}
 
 module Dhrun.Conduit
-  ( MonitoringResult(..)
-  , makeBehavior
+  ( makeBehavior
   )
 where
 
 import           Dhrun.Types.Cfg
+import           Dhrun.Pure
 import           Protolude
 import           Data.Conduit                   ( ConduitT
                                                 , yield
@@ -31,12 +31,6 @@ import           Data.Conduit                   ( ConduitT
 import qualified Data.ByteString               as B
 import           Control.Exception.Base         ( throw )
 
-
-data MonitoringResult =
-    ThrowFoundAllWants
-  | ThrowFoundAnAvoid Text
-  deriving (Show, Typeable)
-instance Exception MonitoringResult
 
 -- | makeBehavior builds an IO conduit that throws a PatternMatched when
 -- all wanted pattern or one avoided pattern are found
