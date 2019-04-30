@@ -48,7 +48,6 @@ main = do
 unitTests :: TestTree
 unitTests = testGroup
   "HUnit tests"
-  {-envVars :: [EnvVar] -> [VarName] -> [(Text, Text)] -> [(Text, Text)]-}
   [ testCase "Pure.envVars"
     $   envVars [EnvVar {varname = VarName "JOBVAR", value = VarValue "JOBVAL"}]
                 [VarName "PASSME"]
