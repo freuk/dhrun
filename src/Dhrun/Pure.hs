@@ -104,8 +104,7 @@ stdToS Out = "stdout"
 stdToS Err = "stderr"
 
 noWants :: Cmd -> Bool
-noWants Cmd {..} =
-  null (wants $ filecheck out) && null (wants $ filecheck err)
+noWants Cmd {..} = null (wants $ filecheck out) && null (wants $ filecheck err)
 
 envVars :: [EnvVar] -> [VarName] -> [(Text, Text)] -> [(Text, Text)]
 envVars internEnv passVars externEnv = DM.toList $ DMM.merge
@@ -132,19 +131,18 @@ finalizeCmd
   -> Either (Either SomeException ()) (Either SomeException ())
   -> ProcessWas
   -> CmdResult
-finalizeCmd c _ (Died (ExitFailure n)) = DiedFailure c n
-finalizeCmd c (Left (Right ())) _ =
-  if noWants c then DiedLegal c else OutputLacking c Out
-finalizeCmd c (Right (Right ())) _ =
-  if noWants c then DiedLegal c else OutputLacking c Err
-finalizeCmd c (Left (Left e)) _ = case fromException e of
-  Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Out
-  Just ThrowFoundAllWants    -> FoundAll c
-  Nothing                    -> ConduitException c Out
-finalizeCmd c (Right (Left e)) _ = case fromException e of
-  Just (ThrowFoundAnAvoid t) -> FoundIllegal c t Err
-  Just ThrowFoundAllWants    -> FoundAll c
-  Nothing                    -> ConduitException c Err
+finalizeCmd c _  (Died (ExitFailure n)) = DiedFailure c n
+finalizeCmd c ei _                      = rightFinalizer ei
+ where
+  rightFinalizer (Left  (Right ())) = legalOrLacking Out
+  rightFinalizer (Right (Right ())) = legalOrLacking Err
+  rightFinalizer (Left  (Left  e )) = unpackE e Out
+  rightFinalizer (Right (Left  e )) = unpackE e Err
+  unpackE e r = case fromException e of
+    Just (ThrowFoundAnAvoid t) -> FoundIllegal c t r
+    Just ThrowFoundAllWants    -> FoundAll c
+    Nothing                    -> ConduitException c r
+  legalOrLacking r = if noWants c then DiedLegal c else OutputLacking c r
 
 with3
   :: ((t1 -> t2) -> t3)

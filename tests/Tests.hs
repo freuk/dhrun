@@ -19,6 +19,7 @@ import           Protolude
 {-import           Control.Monad.Mock-}
 {-import           Control.Monad.Mock.TH-}
 
+import           Dhrun.Pure
 import           Dhrun.Types.Cfg
 import qualified Data.ByteString.Char8         as B8
 import           Control.Monad.Writer
@@ -42,6 +43,9 @@ testDY fn = do
 
 main :: IO ()
 main = do
+  {-let tests = testGroup "Tests" [unitTests, qcProps]-}
+  let tests = testGroup "Tests" [unitTests]
+  defaultMain tests
   fileLoadingResults <- for ["simple", "full", "two"] $ \testName ->
     (runWriterT . runExceptT . testDY) testName >>= \case
       (Right Failure, es) ->
@@ -66,3 +70,24 @@ main = do
           >> for_ es putText
           >> return Failure
   when (Failure `elem` fileLoadingResults) $ die "test set failure."
+
+unitTests :: TestTree
+unitTests = testGroup
+  "HUnit tests"
+  {-envVars :: [EnvVar] -> [VarName] -> [(Text, Text)] -> [(Text, Text)]-}
+  [ testCase "Pure.envVars"
+    $   envVars [EnvVar {varname = VarName "JOBVAR", value = VarValue "JOBVAL"}]
+                [VarName "PASSME"]
+                [("PASSME", "5"), ("DISCARDME", "9")]
+    @?= [("JOBVAR", "JOBVAl"), ("PASSME", "5")]
+  ]
+
+{-qcProps :: TestTree-}
+{-qcProps = testGroup-}
+  {-"QuickCheck specs"-}
+  {-[ QC.testProperty "checkAuthors, AllAuthorsCredited" $ \authorList ->-}
+      {-checkAuthors-}
+          {-(AuthorFileContents (T.intercalate "\n" (authorList :: [Text])))-}
+          {-(GitAuthorsList authorList)-}
+        {-== AllAuthorsCredited-}
+  {-]-}
