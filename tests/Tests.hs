@@ -22,19 +22,17 @@ import           Test.Tasty.Golden
 import           Dhrun.Pure
 import           Dhrun.Types.Cfg
 
-testDY :: Text -> IO ()
+testDY :: (MonadIO m, StringConv ByteString b) => Text -> m b
 testDY fn = do
   loadedD <- inputCfg $ "./examples/" <> fn <> "/" <> fn <> ".dh"
-  writeBinaryFile (toS $ "./examples/" <> fn <> "/" <> fn <> ".yml")
-                  (toS $ encodeCfg loadedD)
+  return $ toS $ encodeCfg loadedD
 
 goldenYml :: Text -> TestTree
-goldenYml folder = goldenVsFile (toS extless) golden output io
+goldenYml folder = goldenVsString (toS extless) golden io
  where
-  io      = (void . testDY) folder
+  io      = testDY folder
   extless = "examples/" <> folder <> "/" <> folder
   golden  = toS $ extless <> ".yml"
-  output  = toS $ extless <> ".yml_"
 
 main :: IO ()
 main = do
