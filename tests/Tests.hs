@@ -1,6 +1,5 @@
 {-# language OverloadedStrings #-}
 {-# language ScopedTypeVariables #-}
-{-# language LambdaCase #-}
 {-# language FlexibleContexts #-}
 {-# language NoImplicitPrelude #-}
 
@@ -10,8 +9,9 @@ module Main
 where
 
 import           Protolude
-{-import           Test.Tasty-}
-{-import           Test.Tasty.HUnit-}
+import           Test.Tasty
+import           Test.Tasty.HUnit
+import           Test.Tasty.Golden
 {-import           Test.Tasty.Hspec-}
 {-import           Test.Tasty.QuickCheck         as QC-}
 {-import qualified Data.Text                     as T-}
@@ -21,55 +21,29 @@ import           Protolude
 
 import           Dhrun.Pure
 import           Dhrun.Types.Cfg
-import qualified Data.ByteString.Char8         as B8
-import           Control.Monad.Writer
-import           System.IO.Error
 
-data Result = Success | Failure deriving (Eq)
-testDY :: (MonadIO m, MonadWriter [Text] m) => Text -> m Result
+testDY :: Text -> IO ()
 testDY fn = do
-
-  tell ["loading " <> fn <> ".yml:"]
-  loadedY <- decodeCfgFile $ "./examples/" <> fn <> "/" <> fn <> ".yml"
-  for_ (B8.lines $ encodeCfg loadedY) $ \x -> tell [toS x]
-
-  tell ["loading " <> fn <> ".dh:"]
   loadedD <- inputCfg $ "./examples/" <> fn <> "/" <> fn <> ".dh"
-  for_ (B8.lines $ encodeCfg loadedD) $ \x -> tell [toS x]
+  writeBinaryFile (toS $ "./examples/" <> fn <> "/" <> fn <> ".yml")
+                  (toS $ encodeCfg loadedD)
 
-  if loadedY == loadedD
-    then tell ["success."] >> return Success
-    else return Failure
+goldenYml :: Text -> TestTree
+goldenYml folder = goldenVsFile (toS extless) golden output io
+ where
+  io      = (void . testDY) folder
+  extless = "examples/" <> folder <> "/" <> folder
+  golden  = toS $ extless <> ".yml"
+  output  = toS $ extless <> ".yml_"
 
 main :: IO ()
 main = do
-  {-let tests = testGroup "Tests" [unitTests, qcProps]-}
-  let tests = testGroup "Tests" [unitTests]
+  let tests = testGroup
+        "Tests"
+        [ unitTests
+        , testGroup "Golden tests" (goldenYml <$> ["simple", "two", "full"])
+        ]
   defaultMain tests
-  fileLoadingResults <- for ["simple", "full", "two"] $ \testName ->
-    (runWriterT . runExceptT . testDY) testName >>= \case
-      (Right Failure, es) ->
-        putText
-            (  "Test \""
-            <> testName
-            <> "\" failure: .yml/.dh produced different configs.\nError log:"
-            )
-          >> for_ es putText
-          >> return Success
-      (Right Success, _) ->
-        putText
-            (  "Test \""
-            <> testName
-            <> "\" success: .yml/.dh produced identical configs."
-            )
-          >> return Success
-      (Left (e :: IOError), es) ->
-        putText ("Failure in test " <> testName <> " :")
-          >> print e
-          >> putText "with test log:"
-          >> for_ es putText
-          >> return Failure
-  when (Failure `elem` fileLoadingResults) $ die "test set failure."
 
 unitTests :: TestTree
 unitTests = testGroup
@@ -79,7 +53,7 @@ unitTests = testGroup
     $   envVars [EnvVar {varname = VarName "JOBVAR", value = VarValue "JOBVAL"}]
                 [VarName "PASSME"]
                 [("PASSME", "5"), ("DISCARDME", "9")]
-    @?= [("JOBVAR", "JOBVAl"), ("PASSME", "5")]
+    @?= [("JOBVAR", "JOBVAL"), ("PASSME", "5")]
   ]
 
 {-qcProps :: TestTree-}

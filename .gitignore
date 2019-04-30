@@ -14,3 +14,4 @@ _output
 */_output
 .direnv
 .ghc.*
+examples/*/*.yml_

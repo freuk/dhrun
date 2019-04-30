@@ -58,7 +58,13 @@ executable dhrun
 
 library dhrun-lib
   hs-source-dirs: src
-  exposed-modules: Dhrun.Types.Cfg, Dhrun.Types.Dhall, Dhrun.Types.Yaml, Dhrun.Run, Dhrun.Pure
+  exposed-modules:
+    Dhrun.Types.Cfg,
+    Dhrun.Types.Dhall,
+    Dhrun.Types.Yaml,
+    Dhrun.Run,
+    Dhrun.Pure,
+    Dhrun.Conduit
   build-depends:
     base,
     ansi-terminal,
@@ -120,6 +126,7 @@ test-suite Tests
     , unliftio
     , tasty
     , tasty-hunit
+    , tasty-golden
     , tasty-hspec
     , tasty-quickcheck
     , quickcheck-text

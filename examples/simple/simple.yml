@@ -1,16 +1,24 @@
----
+pre: null
+verbose: null
+post: null
 cmds:
-  - name: echo
-    args:
-      - hello
-      - world
-    out:
-      filename: foo
-      filecheck:
-        avoids: null
-        wants: null
-    err:
-      filename: bar
-      filecheck:
-        avoids: null
-        wants: null
+- args:
+  - hello
+  - world
+  postchecks: null
+  passvars: null
+  name: echo
+  err:
+    filecheck:
+      wants: null
+      avoids: null
+    filename: bar
+  timeout: null
+  vars: null
+  out:
+    filecheck:
+      wants: null
+      avoids: null
+    filename: foo
+cleaning: null
+workdir: null

@@ -15,6 +15,7 @@ module Dhrun.Types.Cfg
   , Cmd(..)
   , EnvVar(..)
   , VarName(..)
+  , VarValue(..)
   , WorkDir(..)
   , WorkDirBehavior(..)
   , Check(..)
