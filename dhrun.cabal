@@ -6,7 +6,6 @@ author:              Valentin Reis
 maintainer:          fre@freux.fr
 build-type:          Simple
 extra-source-files:  ChangeLog.md
-cabal-version:       >=1.10
 category:            tools
 synopsis:            dhall async CI executor
 description:         reads process information from a dhall configuration and executes asynchronous processes.
@@ -130,6 +129,7 @@ test-suite Tests
     , tasty-golden
     , tasty-hspec
     , tasty-quickcheck
+    , generic-random
     , quickcheck-text
     , hspec
     , dhrun-lib
