@@ -19,16 +19,14 @@ import qualified System.IO                     as SIO
                                                 , stdout
                                                 , BufferMode(..)
                                                 )
-import           Options.Applicative as OA
+import           Options.Applicative           as OA
 
 
 data GhcidTarget = Test | Lib | App deriving (Enum,Bounded,Show,Read)
+
 toArgs Test = ghcidTarget
   "new-repl test:Tests"
-  [ "--test=Main.main"
-  , "--reload=./resources"
-  , "--restart=./src"
-  ]
+  ["--test=Main.main", "--reload=./resources", "--restart=./src"]
 toArgs Lib = ghcidTarget "new-repl dhrun-lib" []
 toArgs App = ghcidTarget "new-repl dhrun" []
 
@@ -64,25 +62,30 @@ main = SIO.hSetBuffering SIO.stdout SIO.NoBuffering
         (info (runGhcid <$> targetParser)
               (progDesc "Run an argo-compatible nix-build.")
         )
+    <> OA.command "coverage" (info (pure runcov) (progDesc "run shake."))
     <> OA.command
          "shake"
-         (info (pure runshake)
-               (progDesc "run shake.")
-         )
+         (info (pure runshake) (progDesc "run test code coverage."))
+    <> OA.command "britt"
+                  (info (pure runbritt) (progDesc "inplace brittany."))
     <> help "Type of operation to run."
     )
 
 targetParser :: Parser GhcidTarget
-targetParser = argument auto
+targetParser = argument
+  auto
   (metavar "TARGET" <> showDefault <> help
     (toS ("The ghcid target, in " <> mconcat ts))
   )
   where ts = intersperse " " (Prelude.show <$> [(minBound :: GhcidTarget) ..])
 
-runshake = shakeArgs shakeOptions $ do
-  phony "clean" $ removeFilesAfter "." ["README.md"]
-  phony "brittany" brittany
+runbritt = runProcess_ $ shell
+  "brittany --write-mode inplace src/*.hs src/Dhrun/*hs src/Dhrun/Dhrun/*hs"
 
- where
-  brittany = runProcess_
-    $ shell "brittany --write-mode inplace src/*.hs src/Dhallexec/*hs"
+runcov = do
+  runProcess_ "cabal clean"
+  runProcess_ "cabal configure --enable-tests --enable-coverage"
+  runProcess_ "cabal test"
+
+runshake =
+  shakeArgs shakeOptions $ phony "clean" $ removeFilesAfter "." ["README.md"]

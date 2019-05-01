@@ -8,7 +8,7 @@ module Main
   )
 where
 
-import           Protolude hiding ((<.>))
+import           Protolude               hiding ( (<.>) )
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.Golden
@@ -23,26 +23,20 @@ import           System.FilePath
 import           Dhrun.Pure
 import           Dhrun.Types.Cfg
 
-testDY :: (MonadIO m, StringConv ByteString b) => FilePath -> m b
-testDY fn = do
-  loadedD <- inputCfg $ toS $"./"<> fn <.> "dh"
-  return $ toS $ encodeCfg loadedD
-
 goldenYml :: FilePath -> TestTree
-goldenYml fn = goldenVsString fn golden io
- where
-  io     = testDY fn
-  golden = fn <.> ".yml"
+goldenYml fn = goldenVsString
+  fn
+  (fn <.> ".yml")
+  (toS . encodeCfg <$> inputCfg (toS $ "./" <> fn <.> "dh"))
 
 main :: IO ()
 main = do
-  paths <- findByExtension [".yml"] "examples"
-  let tests = testGroup
-        "Tests"
-        [ unitTests
-        , testGroup "Golden tests" (goldenYml . toS . dropExtension <$> paths)
-        ]
-  defaultMain tests
+  goldenTests <-
+    testGroup "Golden tests"
+      <$> (   findByExtension [".yml"] "examples"
+          <&> fmap (goldenYml . toS . dropExtension)
+          )
+  defaultMain $ testGroup "Tests" [unitTests, goldenTests]
 
 unitTests :: TestTree
 unitTests = testGroup
