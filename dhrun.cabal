@@ -132,7 +132,6 @@ test-suite Tests
     , quickcheck-text
     , hspec
     , dhrun-lib
-    , monad-mock
     , Glob
   ghc-options:
     -threaded
