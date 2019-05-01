@@ -8,10 +8,11 @@ module Main
   )
 where
 
-import           Protolude
+import           Protolude hiding ((<.>))
 import           Test.Tasty
 import           Test.Tasty.HUnit
 import           Test.Tasty.Golden
+import           System.FilePath
 {-import           Test.Tasty.Hspec-}
 {-import           Test.Tasty.QuickCheck         as QC-}
 {-import qualified Data.Text                     as T-}
@@ -22,24 +23,24 @@ import           Test.Tasty.Golden
 import           Dhrun.Pure
 import           Dhrun.Types.Cfg
 
-testDY :: (MonadIO m, StringConv ByteString b) => Text -> m b
+testDY :: (MonadIO m, StringConv ByteString b) => FilePath -> m b
 testDY fn = do
-  loadedD <- inputCfg $ "./examples/" <> fn <> "/" <> fn <> ".dh"
+  loadedD <- inputCfg $ toS $"./"<> fn <.> "dh"
   return $ toS $ encodeCfg loadedD
 
-goldenYml :: Text -> TestTree
-goldenYml folder = goldenVsString (toS extless) golden io
+goldenYml :: FilePath -> TestTree
+goldenYml fn = goldenVsString fn golden io
  where
-  io      = testDY folder
-  extless = "examples/" <> folder <> "/" <> folder
-  golden  = toS $ extless <> ".yml"
+  io     = testDY fn
+  golden = fn <.> ".yml"
 
 main :: IO ()
 main = do
+  paths <- findByExtension [".yml"] "examples"
   let tests = testGroup
         "Tests"
         [ unitTests
-        , testGroup "Golden tests" (goldenYml <$> ["simple", "two", "full"])
+        , testGroup "Golden tests" (goldenYml . toS . dropExtension <$> paths)
         ]
   defaultMain tests
 
