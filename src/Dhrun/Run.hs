@@ -18,37 +18,41 @@ import           Dhrun.Types.Cfg
 import           Dhrun.Pure
 import           Dhrun.Conduit
 import           Protolude
-import           System.Exit                    ( ExitCode(..) )
-import           Data.Conduit                   ( ConduitT )
-import qualified System.Posix.Signals          as SPS
-                                                ( installHandler
-                                                , keyboardSignal
-                                                , Handler(..)
-                                                )
-import qualified Data.Conduit.Process.Typed    as PT
-import qualified Data.Conduit.Binary           as CB
-import qualified Data.Text                     as T
-                                                ( isInfixOf )
-import qualified System.IO                     as SIO
-                                                ( BufferMode(NoBuffering)
-                                                , hSetBuffering
-                                                , withBinaryFile
-                                                , IOMode(WriteMode)
-                                                , stdout
-                                                )
+import           System.Exit
+                   ( ExitCode(..) )
+import           Data.Conduit
+                   ( ConduitT )
+import qualified System.Posix.Signals                              as SPS
+                   ( installHandler
+                   , keyboardSignal
+                   , Handler(..)
+                   )
+import qualified Data.Conduit.Process.Typed                        as PT
+import qualified Data.Conduit.Binary                               as CB
+import qualified Data.Text                                         as T
+                   ( isInfixOf )
+import qualified System.IO                                         as SIO
+                   ( BufferMode(NoBuffering)
+                   , hSetBuffering
+                   , withBinaryFile
+                   , IOMode(WriteMode)
+                   , stdout
+                   )
 
-import           Control.Monad.IO.Unlift        ( MonadIO(..)
-                                                , withRunInIO
-                                                )
-import           Control.Monad.Writer           ( MonadWriter
-                                                , tell
-                                                , runWriterT
-                                                )
-import qualified System.Directory              as SD
-                                                ( createDirectoryIfMissing )
-import qualified System.Environment            as SE
-                                                ( getEnvironment )
-import qualified System.Timeout                as ST
+import           Control.Monad.IO.Unlift
+                   ( MonadIO(..)
+                   , withRunInIO
+                   )
+import           Control.Monad.Writer
+                   ( MonadWriter
+                   , tell
+                   , runWriterT
+                   )
+import qualified System.Directory                                  as SD
+                   ( createDirectoryIfMissing )
+import qualified System.Environment                                as SE
+                   ( getEnvironment )
+import qualified System.Timeout                                    as ST
 
 import           System.Console.ANSI
 
@@ -127,8 +131,7 @@ runChecks = (cmds <$> ask) >>= \case
             ]
           )
     pu " done"
- where
-  pu t = putV $ "check step:" <> t
+  where pu t = putV $ "check step:" <> t
 
 runAsyncs :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAsyncs = (cmds <$> ask) >>= \case
@@ -178,20 +181,23 @@ runMultipleV getter desc = getter <$> ask >>= \case
 
 -- | Runs a single command. should be the only 'complex' function in this codebase.
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
-runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
+runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
+  for_ otherwd (\(WorkDir swd) -> SD.createDirectoryIfMissing True (toS swd))
   fromMaybe (Timeout c) <$> maybeTimeout go timeout
  where
+  realwd = maybe (toS wd) toS otherwd
+
   -- | output files
   outFile :: FilePath
-  outFile = getWdFilename wd out
+  outFile = getWdFilename realwd out
   errFile :: FilePath
-  errFile = getWdFilename wd err
+  errFile = getWdFilename realwd err
 
   -- | process configuration
   pc :: PC
   pc =
     PT.proc (toS name) (toS <$> args)
-      & PT.setWorkingDir (toS wd)
+      & PT.setWorkingDir (toS realwd)
       & PT.setEnv (mapTuple toS <$> envVars vars passvars fullExternEnv)
       & PT.setStdout PT.createSource
       & PT.setStderr PT.createSource
@@ -213,7 +219,7 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} =
                 (withAsync $ monitor (filecheck err) (PT.getStderr p) serr)
                 waitEitherCatchCancel
       <*> (PT.getExitCode p >>= \case
-            Nothing -> const Killed <$> PT.stopProcess p
+            Nothing -> Killed <$ PT.stopProcess p
             Just ec -> return $ Died ec
           )
 

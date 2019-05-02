@@ -1,42 +1,46 @@
-    let values = ./../resources/package.dh
+let values = ./../resources/package.dh
 
-in  let types = ./../resources/types.dh
+let types = ./../resources/types.dh
 
-in  let config =
-            { cmds =
-                [ { name =
-                      "touch"
-                  , args =
-                      [ "hello" ]
-                  , out =
-                      { filename = "foo", filecheck = values.emptyCheck }
-                  , err =
-                      { filename = "bar", filecheck = values.emptyCheck }
-                  , postchecks =
-                      [ { filename =
-                            "hello"
-                        , filecheck =
-                              values.emptyCheck
-                            ⫽ { avoids = [ "Traceback", "Error" ] }
-                        }
-                      ]
-                  , vars =
-                      [ { varname = "FOO", value = "BAR" } ]
-                  , passvars =
-                      [] : List Text
-                  , timeout =
-                      [ 4 ] : Optional Natural
-                  }
-                ]
-            , verbose = False
-            , cleaning = False
-            , workdir =
-                "/tmp/dhrun_wd" : Text
-            , pre =
-                [ "echo \"preparing!\"" ]
-            , post =
-                [ "echo \"finishing!\"" ]
-            }
-          : types.Config
+let config =
+        { cmds =
+            [ { name =
+                  "touch"
+              , args =
+                  [ "hello" ]
+              , out =
+                  { filename = "foo", filecheck = values.emptyCheck }
+              , err =
+                  { filename = "bar", filecheck = values.emptyCheck }
+              , postchecks =
+                  [ { filename =
+                        "hello"
+                    , filecheck =
+                          values.emptyCheck
+                        ⫽ { avoids = [ "Traceback", "Error" ] }
+                    }
+                  ]
+              , vars =
+                  [ { varname = "FOO", value = "BAR" } ]
+              , passvars =
+                  [] : List Text
+              , timeout =
+                  [ 4 ] : Optional Natural
+              , otherwd =
+                  [] : Optional Text
+              }
+            ]
+        , verbose =
+            False
+        , cleaning =
+            False
+        , workdir =
+            "/tmp/dhrun_wd" : Text
+        , pre =
+            [ "echo \"preparing!\"" ]
+        , post =
+            [ "echo \"finishing!\"" ]
+        }
+      : types.Config
 
 in  config

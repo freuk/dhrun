@@ -53,6 +53,7 @@ data Cmd = Cmd {
   , out         :: DT.FileCheck CheckParse
   , err         :: DT.FileCheck CheckParse
   , postchecks  :: Maybe [DT.FileCheck CheckParse]
+  , otherwd     :: Maybe Text
   } deriving (Eq, Show, Generic, ToJSON, Interpret)
 instance FromJSON Cmd where
     parseJSON = genericParseJSON defaultOptions { omitNothingFields  = True }
@@ -83,6 +84,7 @@ toInternalCmd c = DT.Cmd
     (Just l) -> (toInternalCheck <$>) <$> l
     Nothing  -> []
   , timeout    = timeout c
+  , otherwd = otherwd c
   }
 
 toInternal :: Cfg -> DT.Cfg
@@ -102,6 +104,7 @@ fromInternalCmd c = Cmd {..}
   out     = fromInternalCheck <$> DT.out c
   err     = fromInternalCheck <$> DT.err c
   timeout = DT.timeout c
+  otherwd   = DT.otherwd c
   args    = case DT.args c of
     [] -> Nothing
     l  -> Just l

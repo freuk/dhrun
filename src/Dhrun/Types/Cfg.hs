@@ -117,6 +117,7 @@ data Cmd = Cmd {
   , err         :: FileCheck Check
   , postchecks  :: [FileCheck Check]
   , timeout     :: Maybe Int
+  , otherwd     :: Maybe WorkDir
   } deriving (Eq, Show, Generic)
 
 data Cfg = Cfg
@@ -159,6 +160,7 @@ toInternalCmd DT.Cmd {..} = Cmd
   , err        = toInternalFileCheck err
   , postchecks = toInternalFileCheck <$> postchecks
   , timeout    = fromInteger . toInteger <$> timeout
+  , otherwd      = WorkDir <$> otherwd
   }
 
 toInternalFileCheck :: DT.FileCheck DT.Check -> FileCheck Check
@@ -182,6 +184,7 @@ fromInternalCmd Cmd {..} = DT.Cmd
   , vars       = vars <&> \case
     EnvVar {..} -> DT.EnvVar {varname = toS varname, value = toS value}
   , passvars   = toS <$> passvars
+  , otherwd      = toS <$> otherwd
   }
 
 fromInternalFileCheck :: FileCheck Check -> DT.FileCheck DT.Check

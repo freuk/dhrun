@@ -1,8 +1,8 @@
-    let emptyCheck = ./../Check/empty.dh
+let emptyCheck = ./../Check/empty.dh
 
-in  let FileCheck = ./../FileCheck/FileCheck.dh
+let FileCheck = ./../FileCheck/FileCheck.dh
 
-in  let emptyVars = ./../EnvVar/empty.dh
+let emptyVars = ./../EnvVar/empty.dh
 
 in    λ(args : { name : Text, outfile : Text, errfile : Text })
     → { name =
@@ -21,4 +21,6 @@ in    λ(args : { name : Text, outfile : Text, errfile : Text })
           [] : List Text
       , timeout =
           [] : Optional Natural
+      , otherwd =
+          [] : Optional Text
       }

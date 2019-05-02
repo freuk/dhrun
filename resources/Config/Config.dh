@@ -1,8 +1,8 @@
-    let Verbosity = ./../Verbosity/Verbosity.dh
+let Verbosity = ./../Verbosity/Verbosity.dh
 
-in  let FileCheck = ./../FileCheck/FileCheck.dh
+let FileCheck = ./../FileCheck/FileCheck.dh
 
-in  let Cmd = ./../Cmd/Cmd.dh
+let Cmd = ./../Cmd/Cmd.dh
 
 in  { cmds :
         List Cmd

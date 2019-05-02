@@ -32,6 +32,8 @@ instance Arbitrary (FileCheck Check) where
   arbitrary = genericArbitraryU
 instance Arbitrary FileName where
   arbitrary = genericArbitraryU
+instance Arbitrary WorkDir where
+  arbitrary = genericArbitraryU
 instance Arbitrary Check where
   arbitrary = genericArbitraryU
 instance Arbitrary Pattern where

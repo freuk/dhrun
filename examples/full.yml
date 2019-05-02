@@ -4,7 +4,8 @@ verbose: null
 post:
 - echo "finishing!"
 cmds:
-- args:
+- otherwd: null
+  args:
   - hello
   postchecks:
   - filecheck:

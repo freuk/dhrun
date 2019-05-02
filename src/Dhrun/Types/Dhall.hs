@@ -55,6 +55,7 @@ data Cmd = Cmd {
     name        :: Text
   , args        :: [Text]
   , vars        :: [EnvVar]
+  , otherwd     :: Maybe Text
   , passvars    :: [Text]
   , out         :: FileCheck Check
   , err         :: FileCheck Check

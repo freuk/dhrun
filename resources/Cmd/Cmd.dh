@@ -1,10 +1,10 @@
-    let Verbosity = ./../Verbosity/Verbosity.dh
+let Verbosity = ./../Verbosity/Verbosity.dh
 
-in  let EnvVar = ./../EnvVar/EnvVar.dh
+let EnvVar = ./../EnvVar/EnvVar.dh
 
-in  let FileCheck = ./../FileCheck/FileCheck.dh
+let FileCheck = ./../FileCheck/FileCheck.dh
 
-in  let Check = ./../Check/Check.dh
+let Check = ./../Check/Check.dh
 
 in  { name :
         Text
@@ -22,4 +22,6 @@ in  { name :
         List Text
     , timeout :
         Optional Natural
+    , otherwd :
+        Optional Text
     }

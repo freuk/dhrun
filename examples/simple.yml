@@ -2,7 +2,8 @@ pre: null
 verbose: null
 post: null
 cmds:
-- args:
+- otherwd: null
+  args:
   - hello
   - world
   postchecks: null
