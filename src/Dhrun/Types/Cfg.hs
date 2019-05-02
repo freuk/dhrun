@@ -1,5 +1,6 @@
 {-# language MultiParamTypeClasses #-}
 {-# language FlexibleInstances #-}
+{-# language DeriveGeneric #-}
 
 {-|
 Module      : Dhrun.Internal
@@ -20,6 +21,9 @@ module Dhrun.Types.Cfg
   , WorkDirBehavior(..)
   , Check(..)
   , FileCheck(..)
+  , FileName(..)
+  , CommandName(..)
+  , Arg(..)
   , Pattern(..)
   , inputCfg
   , decodeCfgFile
@@ -36,47 +40,47 @@ import           Data.Yaml.Internal
 import           Protolude
 import qualified Prelude                        ( String )
 
-newtype Arg = Arg Text deriving (Eq,Show)
+newtype Arg = Arg Text deriving (Eq, Show, Generic)
 instance StringConv Arg Text where
   strConv _ (Arg x) = toS x
 instance StringConv Arg Prelude.String where
   strConv _ (Arg x) = toS x
 
-newtype CommandName = CommandName Text deriving (Eq,Show)
+newtype CommandName = CommandName Text deriving (Eq, Show, Generic)
 instance StringConv CommandName Text where
   strConv _ (CommandName x) = toS x
 instance StringConv CommandName FilePath where
   strConv _ (CommandName x) = toS x
 
-newtype Pattern = Pattern Text deriving (Eq,Show)
+newtype Pattern = Pattern Text deriving (Eq, Show, Generic)
 instance StringConv Pattern ByteString where
   strConv _ (Pattern x) = toS x
 instance StringConv Pattern Text where
   strConv _ (Pattern x) = toS x
 
-newtype FileName = FileName Text deriving (Eq,Show)
+newtype FileName = FileName Text deriving (Eq, Show, Generic)
 instance StringConv FileName Text where
   strConv _ (FileName x) = toS x
 instance StringConv FileName FilePath where
   strConv _ (FileName x) = toS x
 
-newtype VarName = VarName Text deriving (Eq,Show)
+newtype VarName = VarName Text deriving (Eq, Show, Generic)
 instance StringConv VarName Text where
   strConv _ (VarName x) = toS x
 
-newtype VarValue = VarValue Text deriving (Eq,Show)
+newtype VarValue = VarValue Text deriving (Eq, Show, Generic)
 instance StringConv VarValue Text where
   strConv _ (VarValue x) = toS x
 
-newtype Pre = Pre Text deriving (Eq,Show)
+newtype Pre = Pre Text deriving (Eq, Show, Generic)
 instance StringConv Pre Text where
   strConv _ (Pre x) = toS x
 
-newtype Post = Post Text deriving (Eq,Show)
+newtype Post = Post Text deriving (Eq, Show, Generic)
 instance StringConv Post Text where
   strConv _ (Post x) = toS x
 
-newtype WorkDir = WorkDir Text deriving (Eq,Show)
+newtype WorkDir = WorkDir Text deriving (Eq, Show, Generic)
 instance StringConv WorkDir Text where
   strConv _ (WorkDir x) = toS x
 instance StringConv WorkDir FilePath where
@@ -91,18 +95,18 @@ data Verbosity = Normal | Verbose
 data EnvVar = EnvVar {
     varname :: VarName
   , value   :: VarValue
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
 
 data Check = Check {
     avoids :: [Pattern]
   , wants  :: [Pattern]
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
 data FileCheck a = FileCheck {
     filename  :: FileName
   , filecheck :: a
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
 data Cmd = Cmd {
     name        :: CommandName
@@ -113,7 +117,7 @@ data Cmd = Cmd {
   , err         :: FileCheck Check
   , postchecks  :: [FileCheck Check]
   , timeout     :: Maybe Int
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
 
 data Cfg = Cfg
   { cmds      :: [Cmd],

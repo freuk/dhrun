@@ -1,4 +1,6 @@
 {-# language RecordWildCards #-}
+{-# language DeriveGeneric #-}
+
 {-|
 Module      : Dhrun.Run
 Description : runner
@@ -14,13 +16,13 @@ module Dhrun.Pure
   , Std(..)
   , envVars
   , concludeCmd
-  , mapTuple
   , finalizeCmd
   , getWdFilename
   , stdToS
   , noWants
   , with3
   , with2
+  , mapTuple
   )
 where
 
@@ -42,13 +44,13 @@ import           Control.Arrow                  ( (***) )
 data CmdResult =
     Timeout Cmd
   | DiedLegal Cmd
-  | ThrewException Cmd IOException
+  | ThrewException Cmd Text
   | DiedFailure Cmd Int
   | FoundAll Cmd
   | FoundIllegal Cmd Text Std
   | OutputLacking Cmd Std
   | ConduitException Cmd Std
-  deriving (Show)
+  deriving (Show,Generic)
 
 data MonitoringResult =
     ThrowFoundAllWants
@@ -58,8 +60,10 @@ instance Exception MonitoringResult
 
 data ProcessWas = Died ExitCode | Killed
 
-data Std = Out | Err deriving (Show)
+data Std = Out | Err deriving (Show, Generic)
 
+-- | concludeCmd hadNoWants cmdresult returns dhrun's conclusion based on whether
+-- there were any "wants" in the template.
 concludeCmd :: Bool -> CmdResult -> Either [Text] Text
 concludeCmd True  (DiedLegal _) = Right "All commands exited successfully."
 concludeCmd False (DiedLegal c) = Left
@@ -96,7 +100,7 @@ concludeCmd _ (ConduitException c e) =
   Left $ "This process ended with a conduit exception:" <> stdToS e : T.lines
     (toS $ encodeCmd c)
 concludeCmd _ (ThrewException c e) =
-  Left $ "This process' execution ended with an exception: " <> show e : T.lines
+  Left $ "This process' execution ended with an exception: " <> e : T.lines
     (toS $ encodeCmd c)
 
 stdToS :: Std -> Text

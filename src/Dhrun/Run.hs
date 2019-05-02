@@ -227,7 +227,7 @@ withWrappedSafeP c pc f = catchIOE $ PT.withProcess pc f
  where
   catchIOE :: IO CmdResult -> IO CmdResult
   catchIOE ioOp =
-    catch ioOp $ \(e :: IOException) -> return $ ThrewException c e
+    catch ioOp $ \(e :: IOException) -> return $ ThrewException c (show e)
 
 -- | runs an IO action with a file sink in lambda scope
 withSinkFileNoBuffering

@@ -35,11 +35,6 @@ ghcidTarget target extra =
   [ "--command"
     , "cabal "
     <> target
-    <> " "
-    <> " --ghc-options=-fno-code"
-    <> " --ghc-options=-fno-break-on-exception"
-    <> " --ghc-options=-fno-break-on-error"
-    <> " --ghc-options=-v1 --ghc-options=-ferror-spans"
     , "--restart=dhrun.cabal"
     , "--restart=default.nix"
     , "--restart=shell.nix"

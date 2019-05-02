@@ -4,5 +4,5 @@
 rec {
   dhrun = pkgs.dhrun;
   dhrunt = pkgs.dhrun.overrideAttrs (_:{doCheck=true;});
-  hack = pkgs.argolib.getHackEnv pkgs.bld pkgs.bld.haskellPackages dhrun;
+  hack = pkgs.argolib.getHackEnv pkgs.bld pkgs pkgs.bld.haskellPackages dhrun;
 }
