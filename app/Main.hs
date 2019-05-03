@@ -18,17 +18,18 @@ where
 
 import           Protolude
 
-import qualified Prelude                        ( print )
-import           Dhrun.Types.Cfg               as DI
-import           Dhrun.Run                     as DR
-import           Options.Applicative           as OA
+import qualified Prelude
+                   ( print )
+import           Dhrun.Types.Cfg                                   as DI
+import           Dhrun.Run                                         as DR
+import           Options.Applicative                               as OA
 import           Dhall
 import           System.FilePath.Posix
 import           System.Directory
 import           GHC.IO.Encoding
-import qualified System.IO                     as SIO
-import qualified Data.ByteString               as B
-                                                ( getContents )
+import qualified System.IO                                         as SIO
+import qualified Data.ByteString                                   as B
+                   ( getContents )
 import           Text.Editor
 
 main :: IO ()
@@ -36,9 +37,10 @@ main = do
   GHC.IO.Encoding.setLocaleEncoding SIO.utf8
   join . customExecParser (prefs showHelpOnError) $ info
     (helper <*> opts)
-    (fullDesc <> header "Dhall-based threaded executor" <> progDesc
-      ("This small program allows to configure and execute asynchronous processes."
-      <> "It is meant to be used for CI jobs."
+    (fullDesc <> header "dhrun" <> progDesc
+      ("dhrun is a bare-bones dhall/yaml-configured asynchronous process executor "
+      <> "that features configurable streaming successs/failure behaviors based on "
+      <> "pattern matches on stdout/stderr."
       )
     )
 
