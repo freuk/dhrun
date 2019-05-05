@@ -11,13 +11,15 @@ module Main
   )
 where
 
-import           Protolude               hiding ( (<.>) )
-import           Test.Tasty              hiding ( Timeout )
+import           Protolude
+            hiding ( (<.>) )
+import           Test.Tasty
+            hiding ( Timeout )
 import           Test.Tasty.HUnit
 import           Test.Tasty.Golden
 import           System.FilePath
 {-import           Test.Tasty.Hspec-}
-import           Test.Tasty.QuickCheck         as QC
+import           Test.Tasty.QuickCheck                             as QC
 {-import qualified Data.Text                     as T-}
 {-import           Data.Text.Arbitrary-}
 {-import           Control.Monad.Mock-}

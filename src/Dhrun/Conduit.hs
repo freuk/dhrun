@@ -18,23 +18,25 @@ where
 import           Dhrun.Types.Cfg
 import           Dhrun.Pure
 import           Protolude
-import qualified Data.ByteString               as B
-import           Control.Exception.Base         ( throw )
-import qualified Data.Conduit.Binary           as CB
-                                                ( lines )
-import qualified Data.Conduit.Combinators      as CC
-                                                ( unlinesAscii )
-import           Data.Conduit                   ( ConduitT
-                                                , yield
-                                                , await
-                                                , runConduit
-                                                , fuseUpstream
-                                                , (.|)
-                                                )
-import qualified Data.Conduit.Process.Typed    as PT
-                                                ( Process
-                                                , ProcessConfig
-                                                )
+import qualified Data.ByteString                                   as B
+import           Control.Exception.Base
+                   ( throw )
+import qualified Data.Conduit.Binary                               as CB
+                   ( lines )
+import qualified Data.Conduit.Combinators                          as CC
+                   ( unlinesAscii )
+import           Data.Conduit
+                   ( ConduitT
+                   , yield
+                   , await
+                   , runConduit
+                   , fuseUpstream
+                   , (.|)
+                   )
+import qualified Data.Conduit.Process.Typed                        as PT
+                   ( Process
+                   , ProcessConfig
+                   )
 
 
 type Source = ConduitT () ByteString IO ()

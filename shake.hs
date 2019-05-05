@@ -1,4 +1,5 @@
 {-# language OverloadedStrings #-}
+{-# language PackageImports #-}
 
 {-|
 Module      : shake.hs
@@ -14,12 +15,14 @@ import           Development.Shake.FilePath
 import           Control.Monad
 import           System.Process.Typed
 import           System.Posix.Process
-import qualified System.IO                     as SIO
-                                                ( hSetBuffering
-                                                , stdout
-                                                , BufferMode(..)
-                                                )
-import           Options.Applicative           as OA
+import qualified System.IO                                         as SIO
+                   ( hSetBuffering
+                   , stdout
+                   , BufferMode(..)
+                   )
+import           Options.Applicative                               as OA
+import           System.Directory
+import "Glob"    System.FilePath.Glob
 
 
 data GhcidTarget = Test | Lib | App deriving (Enum,Bounded,Show,Read)
@@ -33,8 +36,7 @@ toArgs App = ghcidTarget "new-repl dhrun" []
 ghcidTarget :: Text -> [Text] -> [Text]
 ghcidTarget target extra =
   [ "--command"
-    , "cabal "
-    <> target
+    , "cabal " <> target
     , "--restart=dhrun.cabal"
     , "--restart=default.nix"
     , "--restart=shell.nix"
@@ -57,12 +59,13 @@ main = SIO.hSetBuffering SIO.stdout SIO.NoBuffering
         (info (runGhcid <$> targetParser)
               (progDesc "Run an argo-compatible nix-build.")
         )
-    <> OA.command "coverage" (info (pure runcov) (progDesc "run shake."))
+    <> OA.command "britt"
+                  (info (pure runbritt) (progDesc "inplace brittany."))
+    <> OA.command "coverage"
+                  (info (pure runcov) (progDesc "run code coverage"))
     <> OA.command
          "shake"
          (info (pure runshake) (progDesc "run test code coverage."))
-    <> OA.command "britt"
-                  (info (pure runbritt) (progDesc "inplace brittany."))
     <> help "Type of operation to run."
     )
 
@@ -74,8 +77,9 @@ targetParser = argument
   )
   where ts = intersperse " " (Prelude.show <$> [(minBound :: GhcidTarget) ..])
 
-runbritt = runProcess_ $ shell
-  "brittany --write-mode inplace src/*.hs src/Dhrun/*hs src/Dhrun/Dhrun/*hs"
+runbritt =
+  mapM glob ["*.hs", "*/*.hs", "*/*/*.hs", "*/*/*.hs"] <&> concat >>= mapM_
+    (\fn -> runProcess_ $ shell ("brittany --write-mode inplace " <> toS fn))
 
 runcov = do
   runProcess_ "cabal clean"

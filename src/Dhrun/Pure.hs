@@ -28,18 +28,19 @@ where
 
 import           Dhrun.Types.Cfg
 import           Protolude
-import qualified Data.Map.Lazy                 as DM
-                                                ( fromList
-                                                , toList
-                                                )
-import qualified Data.Map.Merge.Lazy           as DMM
-                                                ( merge
-                                                , preserveMissing
-                                                , zipWithMatched
-                                                )
-import qualified Data.Text                     as T
-                                                ( lines )
-import           Control.Arrow                  ( (***) )
+import qualified Data.Map.Lazy                                     as DM
+                   ( fromList
+                   , toList
+                   )
+import qualified Data.Map.Merge.Lazy                               as DMM
+                   ( merge
+                   , preserveMissing
+                   , zipWithMatched
+                   )
+import qualified Data.Text                                         as T
+                   ( lines )
+import           Control.Arrow
+                   ( (***) )
 
 data CmdResult =
     Timeout Cmd
