@@ -68,6 +68,7 @@ YAML configuration files for dhrun. These also serve as golden tests. -
 ### CLI Help
 
 ``` {.hidden}
+dhrun --help
 ```
 
 ``` {.txt}
