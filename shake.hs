@@ -61,6 +61,8 @@ main = SIO.hSetBuffering SIO.stdout SIO.NoBuffering
         )
     <> OA.command "britt"
                   (info (pure runbritt) (progDesc "inplace brittany."))
+    <> OA.command "cabal"
+                  (info (pure cabal) (progDesc "generate cabal file."))
     <> OA.command "coverage"
                   (info (pure runcov) (progDesc "run code coverage"))
     <> OA.command
@@ -80,6 +82,8 @@ targetParser = argument
 runbritt =
   mapM glob ["*.hs", "*/*.hs", "*/*/*.hs", "*/*/*.hs"] <&> concat >>= mapM_
     (\fn -> runProcess_ $ shell ("brittany --write-mode inplace " <> toS fn))
+
+cabal = runProcess_ $ shell "dhall-to-cabal ./cabal.dh"
 
 runcov = do
   runProcess_ "cabal clean"
