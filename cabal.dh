@@ -4,6 +4,59 @@ let prelude =
 let types =
       https://raw.githubusercontent.com/dhall-lang/dhall-to-cabal/1.3.2.0/dhall/types.dhall
 
+let defexts =
+      [ types.Extension.LambdaCase True
+      , types.Extension.RecordWildCards True
+      , types.Extension.ScopedTypeVariables True
+      , types.Extension.ImplicitPrelude False
+      , types.Extension.OverloadedStrings True
+      ]
+
+let deflang =
+      Some
+      < Haskell2010 = {=} | UnknownLanguage : { _1 : Text } | Haskell98 : {} >
+
+let defcopts =
+        prelude.defaults.CompilerOptions
+      ⫽ { GHC =
+            [ "-threaded"
+            , "-Wall"
+            , "-Wcompat"
+            , "-Wincomplete-uni-patterns"
+            , "-Wincomplete-record-updates"
+            , "-Wmissing-home-modules"
+            , "-Widentities"
+            , "-Wredundant-constraints"
+            , "-Wcpp-undef"
+            , "-fwarn-tabs"
+            , "-fwarn-unused-imports"
+            , "-fwarn-missing-signatures"
+            , "-fwarn-name-shadowing"
+            , "-fprint-potential-instances"
+            , "-Wmissing-export-lists"
+            , "-fwarn-unused-do-bind"
+            , "-fwarn-wrong-do-bind"
+            , "-fwarn-incomplete-patterns"
+            ] : List Text
+        }
+
+let copts =
+      { compiler-options =
+          defcopts
+      , default-extensions =
+          defexts
+      , default-language =
+          deflang
+      }
+
+let map = https://prelude.dhall-lang.org/List/map
+
+let nobound = λ(p : Text) → { bounds = prelude.anyVersion, package = p }
+
+let nobounds =
+        λ(ps : List Text)
+      → map Text { bounds : types.VersionRange, package : Text } nobound ps
+
 in    prelude.defaults.Package
     ⫽ { name =
           "dhrun"
@@ -25,71 +78,22 @@ in    prelude.defaults.Package
                 →   prelude.defaults.Executable
                   ⫽ { main-is =
                         "Main.hs"
-                    , build-depends =
-                        [ { bounds = prelude.anyVersion, package = "base" }
-                        , { bounds = prelude.anyVersion, package = "protolude" }
-                        , { bounds = prelude.anyVersion, package = "directory" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "bytestring"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "editor-open"
-                          }
-                        , { bounds = prelude.anyVersion, package = "dhrun-lib" }
-                        , { bounds = prelude.anyVersion, package = "filepath" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "optparse-applicative"
-                          }
-                        , { bounds = prelude.anyVersion, package = "dhall" }
-                        ]
-                    , compiler-options =
-                          prelude.defaults.CompilerOptions
-                        ⫽ { GHC =
-                              [ "-threaded"
-                              , "-Wall"
-                              , "-Wcompat"
-                              , "-Wincomplete-uni-patterns"
-                              , "-Wincomplete-record-updates"
-                              , "-Wmissing-home-modules"
-                              , "-Widentities"
-                              , "-Wredundant-constraints"
-                              , "-Wcpp-undef"
-                              , "-fwarn-tabs"
-                              , "-fwarn-unused-imports"
-                              , "-fwarn-missing-signatures"
-                              , "-fwarn-name-shadowing"
-                              , "-fprint-potential-instances"
-                              , "-Wmissing-export-lists"
-                              , "-fwarn-unused-do-bind"
-                              , "-fwarn-wrong-do-bind"
-                              , "-fwarn-incomplete-patterns"
-                              ] : List Text
-                          }
-                    , default-extensions =
-                        [ types.Extension.LambdaCase True
-                        , types.Extension.RecordWildCards True
-                        , types.Extension.ScopedTypeVariables True
-                        , types.Extension.ImplicitPrelude False
-                        , types.Extension.OverloadedStrings True
-                        ]
-                    , default-language =
-                        Some
-                        < Haskell2010 =
-                            {=}
-                        | UnknownLanguage :
-                            { _1 : Text }
-                        | Haskell98 :
-                            {}
-                        >
                     , hs-source-dirs =
                         [ "app" ]
+                    , build-depends =
+                        nobounds
+                        [ "base"
+                        , "protolude"
+                        , "directory"
+                        , "bytestring"
+                        , "editor-open"
+                        , "dhrun-lib"
+                        , "filepath"
+                        , "optparse-applicative"
+                        , "dhall"
+                        ]
                     }
+                  ⫽ copts
             , name =
                 "dhrun"
             }
@@ -115,81 +119,24 @@ in    prelude.defaults.Package
                   λ(config : types.Config)
                 →   prelude.defaults.Library
                   ⫽ { build-depends =
-                        [ { bounds = prelude.anyVersion, package = "base" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "ansi-terminal"
-                          }
-                        , { bounds = prelude.anyVersion, package = "protolude" }
-                        , { bounds = prelude.anyVersion, package = "mtl" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "bytestring"
-                          }
-                        , { bounds = prelude.anyVersion, package = "process" }
-                        , { bounds = prelude.anyVersion, package = "conduit" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "unliftio-core"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "containers"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "conduit-extra"
-                          }
-                        , { bounds = prelude.anyVersion, package = "unix" }
-                        , { bounds = prelude.anyVersion, package = "yaml" }
-                        , { bounds = prelude.anyVersion, package = "aeson" }
-                        , { bounds = prelude.anyVersion, package = "text" }
-                        , { bounds = prelude.anyVersion, package = "directory" }
-                        , { bounds = prelude.anyVersion, package = "dhall" }
+                        nobounds
+                        [ "base"
+                        , "ansi-terminal"
+                        , "protolude"
+                        , "mtl"
+                        , "bytestring"
+                        , "process"
+                        , "conduit"
+                        , "unliftio-core"
+                        , "containers"
+                        , "conduit-extra"
+                        , "unix"
+                        , "yaml"
+                        , "aeson"
+                        , "text"
+                        , "directory"
+                        , "dhall"
                         ]
-                    , compiler-options =
-                          prelude.defaults.CompilerOptions
-                        ⫽ { GHC =
-                              [ "-Wall"
-                              , "-Wcompat"
-                              , "-Wincomplete-uni-patterns"
-                              , "-Wincomplete-record-updates"
-                              , "-Wmissing-home-modules"
-                              , "-Widentities"
-                              , "-Wredundant-constraints"
-                              , "-Wcpp-undef"
-                              , "-fwarn-tabs"
-                              , "-fwarn-unused-imports"
-                              , "-fwarn-missing-signatures"
-                              , "-fwarn-name-shadowing"
-                              , "-fprint-potential-instances"
-                              , "-Wmissing-export-lists"
-                              , "-fwarn-unused-do-bind"
-                              , "-fwarn-wrong-do-bind"
-                              , "-fwarn-incomplete-patterns"
-                              ] : List Text
-                          }
-                    , default-extensions =
-                        [ types.Extension.LambdaCase True
-                        , types.Extension.RecordWildCards True
-                        , types.Extension.ScopedTypeVariables True
-                        , types.Extension.ImplicitPrelude False
-                        , types.Extension.OverloadedStrings True
-                        ]
-                    , default-language =
-                        Some
-                        < Haskell2010 =
-                            {=}
-                        | UnknownLanguage :
-                            { _1 : Text }
-                        | Haskell98 :
-                            {}
-                        >
                     , hs-source-dirs =
                         [ "src" ]
                     , exposed-modules =
@@ -201,6 +148,7 @@ in    prelude.defaults.Package
                         , "Dhrun.Conduit"
                         ]
                     }
+                  ⫽ copts
             , name =
                 "dhrun-lib"
             }
@@ -220,96 +168,32 @@ in    prelude.defaults.Package
                             { module : Text }
                         >
                     , build-depends =
-                        [ { bounds = prelude.anyVersion, package = "base" }
-                        , { bounds = prelude.anyVersion, package = "protolude" }
-                        , { bounds = prelude.anyVersion, package = "dhall" }
-                        , { bounds = prelude.anyVersion, package = "yaml" }
-                        , { bounds = prelude.anyVersion, package = "aeson" }
-                        , { bounds = prelude.anyVersion, package = "filepath" }
-                        , { bounds = prelude.anyVersion, package = "mtl" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "bytestring"
-                          }
-                        , { bounds = prelude.anyVersion, package = "text" }
-                        , { bounds = prelude.anyVersion, package = "unliftio" }
-                        , { bounds = prelude.anyVersion, package = "tasty" }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "tasty-hunit"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "tasty-golden"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "tasty-hspec"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "tasty-quickcheck"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "generic-random"
-                          }
-                        , { bounds =
-                              prelude.anyVersion
-                          , package =
-                              "quickcheck-text"
-                          }
-                        , { bounds = prelude.anyVersion, package = "hspec" }
-                        , { bounds = prelude.anyVersion, package = "dhrun-lib" }
-                        , { bounds = prelude.anyVersion, package = "Glob" }
+                        nobounds
+                        [ "base"
+                        , "protolude"
+                        , "dhall"
+                        , "yaml"
+                        , "aeson"
+                        , "filepath"
+                        , "mtl"
+                        , "bytestring"
+                        , "text"
+                        , "unliftio"
+                        , "tasty"
+                        , "tasty-hunit"
+                        , "tasty-golden"
+                        , "tasty-hspec"
+                        , "tasty-quickcheck"
+                        , "generic-random"
+                        , "quickcheck-text"
+                        , "hspec"
+                        , "dhrun-lib"
+                        , "Glob"
                         ]
-                    , compiler-options =
-                          prelude.defaults.CompilerOptions
-                        ⫽ { GHC =
-                              [ "-threaded"
-                              , "-Wall"
-                              , "-Wcompat"
-                              , "-Wincomplete-uni-patterns"
-                              , "-Wincomplete-record-updates"
-                              , "-Wmissing-home-modules"
-                              , "-Widentities"
-                              , "-Wredundant-constraints"
-                              , "-Wcpp-undef"
-                              , "-fwarn-tabs"
-                              , "-fwarn-unused-imports"
-                              , "-fwarn-unused-do-bind"
-                              , "-fwarn-wrong-do-bind"
-                              , "-fwarn-missing-signatures"
-                              , "-fwarn-name-shadowing"
-                              , "-fprint-potential-instances"
-                              , "-fwarn-incomplete-patterns"
-                              ] : List Text
-                          }
-                    , default-extensions =
-                        [ types.Extension.LambdaCase True
-                        , types.Extension.RecordWildCards True
-                        , types.Extension.ScopedTypeVariables True
-                        , types.Extension.ImplicitPrelude False
-                        , types.Extension.OverloadedStrings True
-                        ]
-                    , default-language =
-                        Some
-                        < Haskell2010 =
-                            {=}
-                        | UnknownLanguage :
-                            { _1 : Text }
-                        | Haskell98 :
-                            {}
-                        >
                     , hs-source-dirs =
                         [ "tests" ]
                     }
+                  ⫽ copts
             }
           ]
       }
