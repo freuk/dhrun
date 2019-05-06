@@ -8,7 +8,7 @@ processes when those criteria are met and exits accordingly.
 
 ### Example configurations
 
-See the [examples](.examples/) directory for example `.yml` and `.dh`
+See the [examples](./examples/) directory for example `.yml` and `.dh`
 configurations.
 
 ### Use
