@@ -68,12 +68,6 @@ YAML configuration files for dhrun. These also serve as golden tests. -
 ### CLI Help
 
 ``` {.hidden}
-Preprocessing library 'dhrun-lib' for dhrun-0.0.1..
-Building library 'dhrun-lib' for dhrun-0.0.1..
-Preprocessing executable 'dhrun' for dhrun-0.0.1..
-Building executable 'dhrun' for dhrun-0.0.1..
-Preprocessing test suite 'Tests' for dhrun-0.0.1..
-Building test suite 'Tests' for dhrun-0.0.1..
 ```
 
 ``` {.txt}
