@@ -60,10 +60,18 @@ tasty-quickcheck generic-random quickcheck-text hspec dhrun-lib Glob
     hlint, brittany, and others. There is a small vendored codebase in
     /nix that provides this via nixpkgs pinning.
 
-The structure is the following. - `/resources` Dhall types and helper
-functions. - `/app` the main cli tool. - `/examples`s example Dhall and
-YAML configuration files for dhrun. These also serve as golden tests. -
-`/src` dhrun types and logic. - `/tests` golden, unit, quickcheck tests.
+The structure is the following.
+
+-   `/resources` Dhall types and helper functions.
+
+-   `/app` the main cli tool.
+
+-   `/examples`s example Dhall and YAML configuration files for dhrun.
+    These also serve as golden tests.
+
+-   `/src` dhrun types and logic.
+
+-   `/tests` golden, unit, quickcheck tests.
 
 ### CLI Help
 

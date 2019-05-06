@@ -65,14 +65,14 @@ main = SIO.hSetBuffering SIO.stdout SIO.NoBuffering
     <> OA.command "cabal"
                   (info (pure cabal) (progDesc "generate cabal file."))
     <> OA.command "coverage"
-                  (info (pure runcov) (progDesc "run code coverage"))
+                  (info (pure runcov) (progDesc "run code coverage."))
     <> OA.command "shake" (info (pure (runshake [])) (progDesc "run shake."))
     <> OA.command
          "readme"
-         (info (pure (runshake ["README.md"])) (progDesc "run shake."))
+         (info (pure (runshake ["README.md"])) (progDesc "run shake for README.md."))
     <> OA.command
          "build"
-         (info (pure (runshake ["build"])) (progDesc "run shake."))
+         (info (pure (runshake ["build"])) (progDesc "run shake for cabal build."))
     <> help "Type of operation to run."
     )
 
