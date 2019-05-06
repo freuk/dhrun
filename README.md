@@ -6,6 +6,11 @@ pass/fail CI tests. It starts a list of processes, monitors the standard
 streams for patterns that should be expected or avoided, kills the
 processes when those criteria are met and exits accordingly.
 
+### Example configurations
+
+See the [examples](.examples/) directory for example `.yml` and `.dh`
+configurations.
+
 ### Use
 
 You can resolve imports, normalize, and run a dhall configuration on the
