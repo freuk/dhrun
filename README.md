@@ -61,9 +61,14 @@ tasty-quickcheck generic-random quickcheck-text hspec dhrun-lib Glob
 
 ### Hacking
 
+-   edit `.README.md` instead of `README.md` and run `./shake readme`.
+
 -   `nix-shell` provides a dev environment with cabal-build, ghcid,
     hlint, brittany, and others. There is a small vendored codebase in
     /nix that provides this via nixpkgs pinning.
+
+-   `direnv allow` for [lorri](https://github.com/target/lorri)
+    integration.
 
 The structure is the following.
 
