@@ -1,0 +1,5 @@
+- arguments:
+    [ "--language=LambdaCase"
+    , "--cross"
+    , "--threads=0"
+    ]

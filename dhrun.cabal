@@ -5,7 +5,7 @@ cabal-version: 2.0
 -- Do not edit it by hand, because your changes will be over-written!
 --
 -- Instead, edit the source Dhall file, namely
--- 'cabal.dh', and re-generate this file by running
+-- './cabal.dh', and re-generate this file by running
 -- 'dhall-to-cabal -- cabal.dh'.
 -- * * * * * * * * * * * * WARNING * * * * * * * * * * * *
 name: dhrun
