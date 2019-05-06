@@ -23,6 +23,7 @@ import qualified System.IO                                         as SIO
 import           Options.Applicative                               as OA
 import           System.Directory
 import "Glob"    System.FilePath.Glob
+import           System.Environment
 
 
 data GhcidTarget = Test | Lib | App deriving (Enum,Bounded,Show,Read)
@@ -65,9 +66,13 @@ main = SIO.hSetBuffering SIO.stdout SIO.NoBuffering
                   (info (pure cabal) (progDesc "generate cabal file."))
     <> OA.command "coverage"
                   (info (pure runcov) (progDesc "run code coverage"))
+    <> OA.command "shake" (info (pure (runshake [])) (progDesc "run shake."))
     <> OA.command
-         "shake"
-         (info (pure runshake) (progDesc "run test code coverage."))
+         "readme"
+         (info (pure (runshake ["README.md"])) (progDesc "run shake."))
+    <> OA.command
+         "build"
+         (info (pure (runshake ["build"])) (progDesc "run shake."))
     <> help "Type of operation to run."
     )
 
@@ -90,5 +95,31 @@ runcov = do
   runProcess_ "cabal configure --enable-tests --enable-coverage"
   runProcess_ "cabal test"
 
-runshake =
-  shakeArgs shakeOptions $ phony "clean" $ removeFilesAfter "." ["README.md"]
+runshake as = withArgs as $ shakeArgs shakeOptions $ do
+  want ["README.md", "dist/buisd/dhrun"]
+
+  phony "clean" $ removeFilesAfter "REAMDE.md" ["."]
+
+  phony "build" $ liftIO (runProcess_ $ proc "cabal" ["build"])
+
+  ".README.out.md" %> \out -> do
+    let template = ".README.md"
+    need [template]
+    panpipe <- toS <$> liftIO (readProcessStdout_ $ shell "which panpipe")
+    putText $ toS panpipe
+    liftIO
+      (runProcess_ $ proc
+        "pandoc"
+        ["--filter", take (length panpipe - 1) panpipe, template, "-o", out]
+      )
+
+  "README.md" %> \out -> do
+    let template = ".README.out.md"
+    need [template]
+    panhandle <- toS <$> liftIO (readProcessStdout_ $ shell "which panhandle")
+    putText $ toS panhandle
+    liftIO
+      (runProcess_ $ proc
+        "pandoc"
+        ["--filter", take (length panhandle - 1) panhandle, template, "-o", out]
+      )
