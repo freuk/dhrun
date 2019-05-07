@@ -8,14 +8,14 @@ the processes when those criteria are met and exits accordingly.
 
 ### Use
 
-You can resolve imports, normalize, and run a dhall configuration on the
-fly with:
+Resolve imports, normalize, and run a dhrun configuration on the fly
+with:
 
 ``` {.bash}
 dhrun run path/to/config.dhall 
 ```
 
-You may also use a plain YAML file:
+Or use YAML:
 
 ``` {.bash}
 dhrun run path/to/config.yaml
@@ -63,7 +63,7 @@ cmds: # a list of commands with the following structure:
 post: # a list of shell commands to run after the concurrent step.
 ```
 
-Useful command-line options are the following.
+Useful command-line options are the following:
 
 -   `dhrun print` prints the result of a dhall config to stdout
 -   The `"-"` file input argument forces the binary to use the standard
