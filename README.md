@@ -1,10 +1,10 @@
 `dhrun`
 =======
 
-This is a Dhall/YAML configurable job executor meant to be used for
-pass/fail CI tests. It starts a list of processes, monitors the standard
-streams for patterns that should be expected or avoided, kills the
-processes when those criteria are met and exits accordingly.
+This is a Dhall/YAML configurable concurrent job executor meant to be
+used for pass/fail CI tests. It starts a list of processes, monitors the
+standard streams for patterns that should be expected or avoided, kills
+the processes when those criteria are met and exits accordingly.
 
 ### Use
 
@@ -23,14 +23,14 @@ dhrun run path/to/config.yaml
 
 See the [examples](./examples/) directory for example `.yml` and `.dh`
 configurations. The [resources](./resources) directory contains the
-Dhall types for the configuration layer. Here's a yaml example to serve
+Dhall types for the configuration layer. Here is a yaml example to serve
 as a quickstart:
 
 ``` {.yaml}
 verbose: null # whether to be verbose.
 cleaning: null # whether to remove the global workdir on startup.
 workdir: /tmp/dhrun # the global working directory (with creation) - defaults to "./"
-pre: # a list of shell commands to run before the asynchronous step.
+pre: # a list of shell commands to run before the concurrent step.
   - pwd # will print /tmp/dhrun
 cmds: # a list of commands with the following structure:
 - otherwd: null # an alternate working directory for this command
@@ -60,7 +60,7 @@ cmds: # a list of commands with the following structure:
   - value: BAR
     varname: FOO
   timeout: 4 # timeout in seconds
-post: # a list of shell commands to run after the asynchronous step.
+post: # a list of shell commands to run after the concurrent step.
 ```
 
 Useful command-line options are the following.
@@ -152,4 +152,20 @@ Available options:
 Available commands:
   run                      Run a dhrun specification.
   print                    print a dhrun specification
+```
+
+``` {.bash}
+echo "dhrun run --help"
+```
+
+``` {.txt}
+Usage: dhrun run INPUT [--workdir DIRECTORY] [-v|--verbose] [-e|--edit]
+  Run a dhrun specification.
+
+Available options:
+  INPUT                    input dhall configuration
+  --workdir DIRECTORY      working directory (configuration overwrite)
+  -v,--verbose             Enable verbose mode
+  -e,--edit                Edit yaml before run
+  -h,--help                Show this help text
 ```
