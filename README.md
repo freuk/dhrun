@@ -155,7 +155,7 @@ Available commands:
 ```
 
 ``` {.bash}
-echo "dhrun run --help"
+dhrun run --help
 ```
 
 ``` {.txt}
