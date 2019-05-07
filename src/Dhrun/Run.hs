@@ -225,7 +225,7 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
 
 -- | May timeout an IO command.
 maybeTimeout :: IO a -> Maybe Int -> IO (Maybe a)
-maybeTimeout io = maybe (Just <$> io) (\t -> ST.timeout (100000 * t) io)
+maybeTimeout io = maybe (Just <$> io) (\t -> ST.timeout (1000000 * t) io)
 
 -- | runs an IO action with a preconfigured process (PC) in lambda scope (P)
 withWrappedSafeP :: Cmd -> PC -> (P -> IO CmdResult) -> IO CmdResult

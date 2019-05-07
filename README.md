@@ -6,12 +6,6 @@ pass/fail CI tests. It starts a list of processes, monitors the standard
 streams for patterns that should be expected or avoided, kills the
 processes when those criteria are met and exits accordingly.
 
-### Example configurations
-
-See the [examples](./examples/) directory for example `.yml` and `.dh`
-configurations. The [resources](./resources) directory contains the
-Dhall types for the configuration layer.
-
 ### Use
 
 You can resolve imports, normalize, and run a dhall configuration on the
@@ -25,6 +19,48 @@ You may also use a plain YAML file:
 
 ``` {.bash}
 dhrun run path/to/config.yaml
+```
+
+See the [examples](./examples/) directory for example `.yml` and `.dh`
+configurations. The [resources](./resources) directory contains the
+Dhall types for the configuration layer. It also serves as reference
+documentation, but here's a yaml example to serve as a quickstart:
+
+``` {.yaml}
+verbose: null # whether to be verbose.
+cleaning: null # whether to remove the global workdir on startup.
+workdir: /tmp/dhrun # the global working directory (with creation) - defaults to "./"
+pre: # a list of shell commands to run before the asynchronous step.
+  - pwd # will print /tmp/dhrun
+cmds: # a list of commands with the following structure:
+- otherwd: null # an alternate working directory for this command
+  name: echo # command name 
+  args: # arguments
+    - hello
+    - world
+  # a "filecheck" on out: terminates dhrun successfully as soon as all 'wants'
+  # are observed on *at least one* command, and exits dhrun with an error as soon 
+  # as one "avoid" is observed. These specifications are substrings to be matched.
+  out:
+    filecheck:
+      wants: 
+       - hello
+       - world
+      avoids: null
+    filename: foo
+  err: # a "filecheck" on stderr
+    filecheck:
+      wants: null
+      avoids:
+       - Traceback
+    filename: bar
+  postchecks: null # a list of "filechecks" to be performed post-execution
+  passvars: null # environment variables to inherit (famously, PATH.)
+  vars: # environment variables to enforce 
+  - value: BAR
+    varname: FOO
+  timeout: 4 # timeout in seconds
+post: # a list of shell commands to run after the asynchronous step.
 ```
 
 Useful command-line options are the following.
@@ -72,9 +108,9 @@ its tests are:
 
 -   you need to procure
     [`dhall-to-cabal`](https://github.com/dhall-lang/dhall-to-cabal)
-    separately because I didn't see fit to add that bleeding package
-    part of the shell environment. It's necessary if you want to edit
-    the cabal file, which is done through [`./cabal.dh`](./cabal.dh).
+    separately because I didn't see fit to add that package as of the
+    shell environment. It's necessary if you want to edit the cabal
+    file, which is done through [`./cabal.dh`](./cabal.dh).
 
 -   edit `.README.md` instead of `README.md` and run `./shake readme`.
     `./shake` also has other useful dev workflows.
