@@ -1,8 +1,7 @@
 {
-  pkgs ? import <argopkgs> {dhrun-src=./.;},
+  pkgs ? import ./nix {},
 }:
 rec {
   dhrun = pkgs.dhrun;
-  dhrunt = pkgs.dhrun.overrideAttrs (_:{doCheck=true;});
-  hack = pkgs.argolib.getHackEnv pkgs.bld pkgs pkgs.bld.haskellPackages dhrun;
+  hack = pkgs.lib.getHackEnv pkgs.bleeding pkgs pkgs.bleedingHaskellPackages dhrun;
 }

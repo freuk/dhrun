@@ -1,0 +1,14 @@
+{
+  "fetch": {
+    "args": {
+      "fetchSubmodules": false,
+      "rev": "9e974e3d3713762a8979a29f492fbed5ff6e68e5",
+      "sha256": "1zssmg5sh0h1ayai6cj9s40s5hznmxpv554nm961ms00zv0lm1gc",
+      "url": "https://github.com/freuk/panhandle.git"
+    },
+    "fn": "fetchgit"
+  },
+  "rev": "refs/heads/master",
+  "type": "fetchgit",
+  "url": "https://github.com/freuk/panhandle.git"
+}

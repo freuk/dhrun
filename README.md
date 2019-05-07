@@ -9,7 +9,8 @@ processes when those criteria are met and exits accordingly.
 ### Example configurations
 
 See the [examples](./examples/) directory for example `.yml` and `.dh`
-configurations.
+configurations. The [resources](./resources) directory contains the
+Dhall types for the configuration layer.
 
 ### Use
 
@@ -26,12 +27,12 @@ You may also use a plain YAML file:
 dhrun run path/to/config.yaml
 ```
 
-The the only notable command-line options are:
+Useful command-line options are the following.
 
--   `dhrun print` which prints the result of a dhall config to stdout
--   the "-" file input argument which forces the binary to use the
-    standard input (assuming the YAML format).
--   the `-e` option which allows to edit the yaml configuration on the
+-   `dhrun print` prints the result of a dhall config to stdout
+-   The `"-"` file input argument forces the binary to use the standard
+    input (assuming the YAML format).
+-   The `-e` option allows to edit the configuration (in YAML) on the
     fly before execution
 
 A workflow to evaluate the config via a dhall codebase at configuration
@@ -46,31 +47,42 @@ dhrun run "-"
 
 ### Installation
 
+There is a small vendored Nix codebase in /nix.
+
     nix-env -f . -iA dhrun
 
-### Dependencies
+The `/nix` folder is mostly there to manage the development workflow so
+feel free to try other ways. The hackage dependencies for `dhrun` and
+its tests are:
 
-`dhrun` depends on:
-
-base ansi-terminal protolude mtl bytestring process conduit
-unliftio-core containers conduit-extra unix yaml aeson text directory
-dhall base protolude directory bytestring editor-open dhrun-lib filepath
-optparse-applicative dhall base protolude dhall yaml aeson filepath mtl
-bytestring text unliftio tasty tasty-hunit tasty-golden tasty-hspec
-tasty-quickcheck generic-random quickcheck-text hspec dhrun-lib Glob
+`base` `ansi-terminal` `protolude` `mtl` `bytestring` `process`
+`conduit` `unliftio-core` `containers` `conduit-extra` `unix` `yaml`
+`aeson` `text` `directory` `dhall` `base` `protolude` `directory`
+`bytestring` `editor-open` `dhrun-lib` `filepath` `optparse-applicative`
+`dhall` `base` `protolude` `dhall` `yaml` `aeson` `filepath` `mtl`
+`bytestring` `text` `unliftio` `tasty` `tasty-hunit` `tasty-golden`
+`tasty-hspec` `tasty-quickcheck` `generic-random` `quickcheck-text`
+`hspec` `dhrun-lib` `Glob`
 
 ### Hacking
-
--   edit `.README.md` instead of `README.md` and run `./shake readme`.
 
 -   `nix-shell` provides a dev environment with cabal-build, ghcid,
     hlint, brittany, and others. There is a small vendored codebase in
     /nix that provides this via nixpkgs pinning.
 
+-   you need to procure
+    [`dhall-to-cabal`](https://github.com/dhall-lang/dhall-to-cabal)
+    separately because I didn't see fit to add that bleeding package
+    part of the shell environment. It's necessary if you want to edit
+    the cabal file, which is done through [`./cabal.dh`](./cabal.dh).
+
+-   edit `.README.md` instead of `README.md` and run `./shake readme`.
+    `./shake` also has other useful dev workflows.
+
 -   `direnv allow` for [lorri](https://github.com/target/lorri)
     integration.
 
-The structure is the following.
+The structure of the code is the following.
 
 -   `/resources` Dhall types and helper functions.
 
