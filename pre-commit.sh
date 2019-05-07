@@ -2,3 +2,4 @@
 
 ./shake britt
 ./shake cabal
+./shake readme
