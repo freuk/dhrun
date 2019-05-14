@@ -4,11 +4,10 @@
 This is a Dhall/YAML configurable concurrent job executor meant to be
 used for pass/fail CI tests. It starts a list of processes, monitors the
 standard streams for patterns that should be expected or avoided, kills
-the processes when those criteria are met and exits accordingly.
-Essentially, this is in the spirit of
-[venom](https://github.com/ovh/venom). Compared to that project, dhrun
-has only one execution capability and its assertion specifications are
-poor. It supports concurrency, however.
+the processes when those criteria are met and exits accordingly. This is
+in the spirit of [venom](https://github.com/ovh/venom). Compared to that
+tool, dhrun has only one execution capability and its assertion
+specifications are poor. It supports concurrency, however.
 
 ### Use
 
@@ -27,45 +26,8 @@ dhrun run path/to/config.yaml
 
 See the [examples](./examples/) directory for example `.yml` and `.dh`
 configurations. The [resources](./resources) directory contains the
-Dhall types for the configuration layer. Here is a yaml example to serve
-as a quickstart:
-
-``` {.yaml}
-verbose: null       # whether to be verbose.
-cleaning: null      # whether to remove the global workdir on startup.
-workdir: /tmp/dhrun # the global working directory (with creation) - defaults to "./"
-pre: # a list of shell commands to run before the concurrent step.
-  - pwd # will print /tmp/dhrun
-cmds: # a list of commands with the following structure:
-- otherwd: null # an alternate working directory for this command
-  name: echo # command name 
-  args: # arguments
-    - hello
-    - world
-  # a "filecheck" on out: terminates dhrun successfully as soon as all 'wants'
-  # are observed on *at least one* command, and exits dhrun with an error as soon 
-  # as one "avoid" is observed. These specifications are substrings to be matched.
-  out:
-    filecheck:
-      wants: 
-       - hello
-       - world
-      avoids: null
-    filename: foo
-  err: # a "filecheck" on stderr
-    filecheck:
-      wants: null
-      avoids:
-       - Traceback
-    filename: bar
-  postchecks: null # a list of "filechecks" to be performed post-execution
-  passvars: null # environment variables to inherit (famously, PATH.)
-  vars: # environment variables to enforce 
-  - value: BAR
-    varname: FOO
-  timeout: 4 # timeout in seconds
-post: # a list of shell commands to run after the concurrent step.
-```
+Dhall types for the configuration layer. File
+[quickstart.yml](./quickstart.yml) serves as a quickstart example.
 
 Useful command-line options are the following:
 
@@ -83,6 +45,45 @@ dhall resolve <<< "let codebase = /path/package.dhall in codebase.foo bar baz" |
 dhall normalize |\
 dhall-to-yaml |\
 dhrun run "-" 
+```
+
+### CLI Interface
+
+``` {.hidden}
+dhrun --help
+```
+
+``` {.txt}
+dhrun
+
+Usage: dhrun COMMAND
+  dhrun is a bare-bones dhall/yaml-configured asynchronous process executor that
+  features configurable streaming successs/failure behaviors based on pattern
+  matches on stdout/stderr.
+
+Available options:
+  -h,--help                Show this help text
+  COMMAND                  Type of operation to run.
+
+Available commands:
+  run                      Run a dhrun specification.
+  print                    print a dhrun specification
+```
+
+``` {.bash}
+dhrun run --help
+```
+
+``` {.txt}
+Usage: dhrun run INPUT [--workdir DIRECTORY] [-v|--verbose] [-e|--edit]
+  Run a dhrun specification.
+
+Available options:
+  INPUT                    input dhall configuration
+  --workdir DIRECTORY      working directory (configuration overwrite)
+  -v,--verbose             Enable verbose mode
+  -e,--edit                Edit yaml before run
+  -h,--help                Show this help text
 ```
 
 ### Installation
@@ -134,42 +135,3 @@ The structure of the code is the following.
 -   `/src` dhrun types and logic.
 
 -   `/tests` golden, unit, quickcheck tests.
-
-### CLI Help
-
-``` {.hidden}
-dhrun --help
-```
-
-``` {.txt}
-dhrun
-
-Usage: dhrun COMMAND
-  dhrun is a bare-bones dhall/yaml-configured asynchronous process executor that
-  features configurable streaming successs/failure behaviors based on pattern
-  matches on stdout/stderr.
-
-Available options:
-  -h,--help                Show this help text
-  COMMAND                  Type of operation to run.
-
-Available commands:
-  run                      Run a dhrun specification.
-  print                    print a dhrun specification
-```
-
-``` {.bash}
-dhrun run --help
-```
-
-``` {.txt}
-Usage: dhrun run INPUT [--workdir DIRECTORY] [-v|--verbose] [-e|--edit]
-  Run a dhrun specification.
-
-Available options:
-  INPUT                    input dhall configuration
-  --workdir DIRECTORY      working directory (configuration overwrite)
-  -v,--verbose             Enable verbose mode
-  -e,--edit                Edit yaml before run
-  -h,--help                Show this help text
-```
