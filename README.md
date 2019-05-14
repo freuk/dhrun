@@ -5,8 +5,10 @@ This is a Dhall/YAML configurable concurrent job executor meant to be
 used for pass/fail CI tests. It starts a list of processes, monitors the
 standard streams for patterns that should be expected or avoided, kills
 the processes when those criteria are met and exits accordingly.
-Essentially, this implements a single feature from
-[venom](https://github.com/ovh/venom).
+Essentially, this is in the spirit of
+[venom](https://github.com/ovh/venom). Compared to that project, dhrun
+has only one execution capability and its assertion specifications are
+poor. It supports concurrency, however.
 
 ### Use
 
