@@ -5,6 +5,8 @@ This is a Dhall/YAML configurable concurrent job executor meant to be
 used for pass/fail CI tests. It starts a list of processes, monitors the
 standard streams for patterns that should be expected or avoided, kills
 the processes when those criteria are met and exits accordingly.
+Essentially, this implements a single feature from
+[venom](https://github.com/ovh/venom).
 
 ### Use
 
