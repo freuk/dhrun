@@ -31,8 +31,8 @@ Dhall types for the configuration layer. Here is a yaml example to serve
 as a quickstart:
 
 ``` {.yaml}
-verbose: null # whether to be verbose.
-cleaning: null # whether to remove the global workdir on startup.
+verbose: null       # whether to be verbose.
+cleaning: null      # whether to remove the global workdir on startup.
 workdir: /tmp/dhrun # the global working directory (with creation) - defaults to "./"
 pre: # a list of shell commands to run before the concurrent step.
   - pwd # will print /tmp/dhrun
