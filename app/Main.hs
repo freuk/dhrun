@@ -38,35 +38,37 @@ main = do
   join . customExecParser (prefs showHelpOnError) $ info
     (helper <*> opts)
     (fullDesc <> header "dhrun" <> progDesc
-      ("dhrun is a bare-bones dhall/yaml-configured asynchronous process executor "
-      <> "that features configurable streaming successs/failure behaviors based on "
-      <> "pattern matches on stdout/stderr."
+      (  "dhall-configured concurrent process execution"
+      <> " with streaming assertion monitoring"
       )
     )
 
 data MainCfg = MainCfg
-  { inputfile :: Text
-  , workdir   :: Maybe Text
-  , verbosity :: Verbosity
+  { inputfile    :: Text
+  , yamlStdInput :: SourceType
+  , verbosity    :: Verbosity
   , edit :: Bool
 }
 
 commonParser :: Parser MainCfg
 commonParser =
   MainCfg
-    <$> strArgument (metavar "INPUT" <> help "input dhall configuration")
-    <*> optional
-          (strOption
-            (long "workdir" <> metavar "DIRECTORY" <> help
-              "working directory (configuration overwrite)"
-            )
+    <$> strArgument
+          (  metavar "INPUT"
+          <> help "Input dhall configuration. Use \"-\" for stdin."
+          )
+    <*> flag
+          Dhall
+          Yaml
+          (long "yaml" <> short 'y' <> help
+            "Read yaml from stdin instead of dhall when using \"-\"."
           )
     <*> flag Normal
              Verbose
-             (long "verbose" <> short 'v' <> help "Enable verbose mode")
+             (long "verbose" <> short 'v' <> help "Enable verbose mode.")
     <*> flag False
              True
-             (long "edit" <> short 'e' <> help "Edit yaml before run")
+             (long "edit" <> short 'e' <> help "Edit yaml before run.")
 
 opts :: Parser (IO ())
 opts =
@@ -77,16 +79,17 @@ opts =
     <> command
          "print"
          ( info (printY <$> commonParser)
-         $ progDesc "print a dhrun specification"
+         $ progDesc "Print a dhrun specification."
          )
     <> help "Type of operation to run."
 
 
-data Source = Dhall | Yaml | Stdin
+data SourceType = Dhall | Yaml deriving (Eq)
+data Source = Known SourceType | Stdin
 ext :: Text -> Maybe Source
 ext "-" = Just Stdin
-ext fn | xt `elem` [".dh", ".dhall"] = Just Dhall
-       | xt `elem` [".yml", ".yaml"] = Just Yaml
+ext fn | xt `elem` [".dh", ".dhall"] = Just (Known Dhall)
+       | xt `elem` [".yml", ".yaml"] = Just (Known Yaml)
        | otherwise                   = Nothing
   where xt = takeExtension $ toS fn
 
@@ -95,15 +98,18 @@ load MainCfg {..} =
   (if edit then editing else return)
     =<< overrideV
     <$> case ext (toS inputfile) of
-          (Just Dhall) ->
+          (Just (Known Dhall)) ->
             (if v then detailed else identity)
               $   inputCfg
               =<< toS
               <$> makeAbsolute (toS inputfile)
-          (Just Yaml ) -> decodeCfgFile =<< toS <$> makeAbsolute (toS inputfile)
-          (Just Stdin) -> B.getContents <&> decodeCfg >>= \case
-            Left  e   -> Prelude.print e >> die "YAML parsing exception."
-            Right cfg -> return cfg
+          (Just (Known Yaml)) ->
+            decodeCfgFile =<< toS <$> makeAbsolute (toS inputfile)
+          (Just Stdin) -> case yamlStdInput of
+            Yaml -> B.getContents <&> decodeCfg >>= \case
+              Left  e   -> Prelude.print e >> die "yaml parsing exception."
+              Right cfg -> return cfg
+            Dhall -> B.getContents >>= inputCfg . toS
           Nothing ->
             die $ "couldn't figure out extension for file " <> inputfile
  where
@@ -112,12 +118,11 @@ load MainCfg {..} =
     { DI.verbosity = if (DI.verbosity x == Verbose) || v
                        then Verbose
                        else Normal
-    , DI.workdir   = WorkDir $ fromMaybe (toS $ DI.workdir x) workdir
     }
 
 editing :: Cfg -> IO Cfg
 editing c = runUserEditorDWIM yt (encodeCfg c) <&> decodeCfg >>= \case
-  Left  e   -> Prelude.print e >> die "YAML parsing exception."
+  Left  e   -> Prelude.print e >> die "yaml parsing exception."
   Right cfg -> return cfg
   where yt = mkTemplate "yaml"
 
