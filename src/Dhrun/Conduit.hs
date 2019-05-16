@@ -44,20 +44,23 @@ type Sink = ConduitT ByteString Void IO ()
 type P  = PT.Process () Source Source
 type PC = PT.ProcessConfig () Source Source
 
--- | THROWS PatternMatched
+-- | output monitoring conduit. THROWS PatternMatched - with a one second wait to
 monitor
-  :: (Monad m)
-  => Check
-  -> ConduitT () ByteString m ()
-  -> ConduitT ByteString Void m ()
-  -> m ()
-monitor behavior source sink =
-  runConduit
-    $              source
-    .|             CB.lines
-    .|             makeBehavior behavior
-    `fuseUpstream` CC.unlinesAscii
-    `fuseUpstream` sink
+  :: Check
+  -> ConduitT () ByteString IO ()
+  -> ConduitT ByteString Void IO ()
+  -> IO ()
+monitor behavior source sink = catch go $ \case
+  e@ThrowFoundAllWants    -> throw e
+  e@(ThrowFoundAnAvoid _) -> threadDelay 1000000 >> throw e
+ where
+  go =
+    runConduit
+      $              source
+      .|             CB.lines
+      .|             makeBehavior behavior
+      `fuseUpstream` CC.unlinesAscii
+      `fuseUpstream` sink
 
 -- | makeBehavior builds an IO conduit that throws a PatternMatched when
 -- all wanted pattern or one avoided pattern are found
@@ -83,5 +86,5 @@ noAvoidsAndOtherwise
 noAvoidsAndOtherwise Check {..} otherwiseConduit = await >>= \case
   Just b -> case filter (`B.isInfixOf` b) (toS <$> avoids) of
     []     -> otherwiseConduit b
-    xh : _ -> yield b >> throw (ThrowFoundAnAvoid $ toS xh)
+    xh : _ -> throw (ThrowFoundAnAvoid $ toS xh) >> otherwiseConduit b
   Nothing -> return ()
