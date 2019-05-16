@@ -75,7 +75,11 @@ Available options:
 
 -   get [Nix](https://nixos.org/nix/)
 
--   run `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
+-   install 1.0.0 release:
+    `nix-env -f https://github.com/freuk/dhrun/archive/1.0.0.tar.gz -iA dhrun`
+
+-   install bleeding edge:
+    `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
 
 This pins nixpkgs 18.09. Building should take a minute or two and will
 definitely succeed.
