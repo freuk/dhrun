@@ -1,50 +1,31 @@
-`dhrun`
-=======
-
-This is a Dhall/YAML configurable concurrent job executor that runs
-assertion-based CI tests. It starts a list of processes, monitors the
-standard streams for patterns that should be expected or avoided, kills
-the processes when those criteria are met and exits accordingly. This is
-in the spirit of [venom](https://github.com/ovh/venom). Compared to that
-tool, dhrun has only one execution capability and its assertions are
-poor. It supports concurrency and monitors streams online, however.
+Dhall/YAML configurable concurrent job executor with streaming assertion
+checks for linux platforms. `dhrun` starts a list of processes, monitors
+the standard streams for patterns that should be expected or avoided,
+kills the processes when criteria are met and exits accordingly. The
+goals are similar to [venom](https://github.com/ovh/venom). Compared to
+that tool, `dhrun` has only one execution capability(exec) and its
+assertions are poor(infix strings only). It supports concurrency and
+monitors streams online, however. it was written to create a
+configuration layer above runs of single-node integration tests for
+client-server applications.
 
 ### Use
 
-Resolve imports, normalize, and run a dhrun configuration on the fly
-with:
-
 ``` {.bash}
 dhrun run path/to/config.dhall 
-```
-
-Or use YAML:
-
-``` {.bash}
 dhrun run path/to/config.yaml
 ```
 
-See the [examples](./examples/) directory for example `.yml` and `.dh`
-configurations. The [resources](./resources) directory contains the
-Dhall types for the configuration layer. File
-[quickstart.yml](./quickstart.yml) serves as a quickstart example.
+See file [quickstart.yml](./quickstart.yml) for an overview of `dhrun`'s
+capabilities. The [resources](./resources) directory contains the Dhall
+types for the configuration layer, and [examples](./examples/) directory
+contains other example `.yml` and `.dh` configurations.
 
-Useful command-line options:
-
--   `dhrun print` prints the result of a dhall config to stdout
--   The `"-"` file input argument forces the binary to use the standard
-    input (assuming the YAML format).
--   The `-e` option allows to edit the configuration (in YAML) on the
-    fly before execution
-
-A workflow to evaluate the config via a dhall codebase at configuration
-time might involve `dhall` and `dhall-to-yaml`:
+A workflow to evaluate the config via a dhall codebase might involve a
+here document:
 
 ``` {.bash}
-dhall resolve <<< "let codebase = /path/package.dhall in codebase.foo bar baz" |\
-dhall normalize |\
-dhall-to-yaml |\
-dhrun run "-" 
+dhrun run <<< "let codebase = /path/package.dhall in codebase.foo bar baz"
 ```
 
 ### CLI Interface
@@ -57,9 +38,8 @@ dhrun --help
 dhrun
 
 Usage: dhrun COMMAND
-  dhrun is a bare-bones dhall/yaml-configured asynchronous process executor that
-  features configurable streaming successs/failure behaviors based on pattern
-  matches on stdout/stderr.
+  dhall-configured concurrent process execution with streaming assertion
+  monitoring
 
 Available options:
   -h,--help                Show this help text
@@ -67,7 +47,7 @@ Available options:
 
 Available commands:
   run                      Run a dhrun specification.
-  print                    print a dhrun specification
+  print                    Print a dhrun specification.
 ```
 
 ``` {.bash}
@@ -75,14 +55,15 @@ dhrun run --help
 ```
 
 ``` {.txt}
-Usage: dhrun run INPUT [--workdir DIRECTORY] [-v|--verbose] [-e|--edit]
+Usage: dhrun run [INPUT] [-y|--yaml] [-v|--verbose] [-e|--edit]
   Run a dhrun specification.
 
 Available options:
-  INPUT                    input dhall configuration
-  --workdir DIRECTORY      working directory (configuration overwrite)
-  -v,--verbose             Enable verbose mode
-  -e,--edit                Edit yaml before run
+  INPUT                    Input configuration with .yml/.yaml/.dh/.dhall
+                           extension. Leave void for stdin (dhall) input.
+  -y,--yaml                Assume stdin to be yaml instead of dhall.
+  -v,--verbose             Enable verbose mode.
+  -e,--edit                Edit yaml in $EDITOR before run.
   -h,--help                Show this help text
 ```
 

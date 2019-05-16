@@ -56,14 +56,15 @@ commonParser =
     <$> optional
           (strArgument
             (  metavar "INPUT"
-            <> help "Input dhall configuration. Leave void for stdin."
+            <> help
+                 "Input configuration with .yml/.yaml/.dh/.dhall extension. Leave void for stdin (dhall) input."
             )
           )
     <*> flag
           Dhall
           Yaml
           (long "yaml" <> short 'y' <> help
-            "Read yaml from stdin instead of dhall."
+            "Assume stdin to be yaml instead of dhall."
           )
     <*> flag Normal
              Verbose
