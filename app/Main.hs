@@ -44,8 +44,8 @@ main = do
     )
 
 data MainCfg = MainCfg
-  { inputfile    :: Text
-  , yamlStdInput :: SourceType
+  { inputfile    :: Maybe Text
+  , stdinType    :: SourceType
   , verbosity    :: Verbosity
   , edit :: Bool
 }
@@ -53,22 +53,25 @@ data MainCfg = MainCfg
 commonParser :: Parser MainCfg
 commonParser =
   MainCfg
-    <$> strArgument
-          (  metavar "INPUT"
-          <> help "Input dhall configuration. Use \"-\" for stdin."
+    <$> optional
+          (strArgument
+            (  metavar "INPUT"
+            <> help "Input dhall configuration. Leave void for stdin."
+            )
           )
     <*> flag
           Dhall
           Yaml
           (long "yaml" <> short 'y' <> help
-            "Read yaml from stdin instead of dhall when using \"-\"."
+            "Read yaml from stdin instead of dhall."
           )
     <*> flag Normal
              Verbose
              (long "verbose" <> short 'v' <> help "Enable verbose mode.")
-    <*> flag False
-             True
-             (long "edit" <> short 'e' <> help "Edit yaml before run.")
+    <*> flag
+          False
+          True
+          (long "edit" <> short 'e' <> help "Edit yaml in $EDITOR before run.")
 
 opts :: Parser (IO ())
 opts =
@@ -85,33 +88,34 @@ opts =
 
 
 data SourceType = Dhall | Yaml deriving (Eq)
-data Source = Known SourceType | Stdin
-ext :: Text -> Maybe Source
-ext "-" = Just Stdin
-ext fn | xt `elem` [".dh", ".dhall"] = Just (Known Dhall)
-       | xt `elem` [".yml", ".yaml"] = Just (Known Yaml)
-       | otherwise                   = Nothing
+data FinallySource = NoExt | FinallyFile SourceType Text | FinallyStdin SourceType
+ext :: SourceType -> Maybe Text -> FinallySource
+ext _ (Just fn) | xt `elem` [".dh", ".dhall"] = FinallyFile Dhall fn
+                | xt `elem` [".yml", ".yaml"] = FinallyFile Yaml fn
+                | otherwise                   = NoExt
   where xt = takeExtension $ toS fn
+ext st Nothing = FinallyStdin st
 
 load :: MainCfg -> IO Cfg
 load MainCfg {..} =
   (if edit then editing else return)
     =<< overrideV
-    <$> case ext (toS inputfile) of
-          (Just (Known Dhall)) ->
+    <$> case ext stdinType inputfile of
+          (FinallyFile Dhall filename) ->
             (if v then detailed else identity)
               $   inputCfg
               =<< toS
-              <$> makeAbsolute (toS inputfile)
-          (Just (Known Yaml)) ->
-            decodeCfgFile =<< toS <$> makeAbsolute (toS inputfile)
-          (Just Stdin) -> case yamlStdInput of
-            Yaml -> B.getContents <&> decodeCfg >>= \case
-              Left  e   -> Prelude.print e >> die "yaml parsing exception."
-              Right cfg -> return cfg
-            Dhall -> B.getContents >>= inputCfg . toS
-          Nothing ->
-            die $ "couldn't figure out extension for file " <> inputfile
+              <$> makeAbsolute (toS filename)
+          (FinallyFile Yaml filename) ->
+            decodeCfgFile =<< toS <$> makeAbsolute (toS filename)
+          (FinallyStdin Yaml) -> B.getContents <&> decodeCfg >>= \case
+            Left  e   -> Prelude.print e >> die "yaml parsing exception."
+            Right cfg -> return cfg
+          (FinallyStdin Dhall) -> B.getContents >>= inputCfg . toS
+          NoExt                -> die
+            (  "couldn't figure out extension for input file. "
+            <> "Please use something in {.yml,.yaml,.dh,.dhall} ."
+            )
  where
   v = verbosity == Verbose
   overrideV x = x

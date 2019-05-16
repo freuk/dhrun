@@ -1,1 +1,0 @@
-- adds 'kill=yes, kill=no, kill=wait' option for "avoids".
