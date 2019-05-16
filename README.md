@@ -1,4 +1,4 @@
-##### [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/) configurable concurrent job executor with streaming assertions.
+##### `dhrun`: [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/) configurable concurrent process executor with streaming assertions.
 
 `dhrun` starts a list of (Unix) processes, monitors the standard streams
 for patterns that should be expected or avoided, kills the processes
