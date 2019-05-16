@@ -2,10 +2,10 @@
 
 `dhrun` starts a list of (Unix) processes, monitors the standard streams
 for patterns that should be expected or avoided, kills the processes
-when criteria are met and exits accordingly. It is configured either
-using [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/). Its
-goals are similar to [venom](https://github.com/ovh/venom). Compared to
-that tool, `dhrun` has only one execution capability(exec) and its
+when criteria are met and exits accordingly. It is configured using
+either [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/).
+Its goals are similar to [venom](https://github.com/ovh/venom). Compared
+to that tool, `dhrun` has only one execution capability(exec) and its
 assertions are poor(infix strings only). It supports concurrency and
 monitors streams, however. It was written to create a configuration
 layer to control single-node integration tests for a linux daemon.
