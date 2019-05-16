@@ -75,14 +75,12 @@ Available options:
 
 -   get [Nix](https://nixos.org/nix/)
 
--   install 1.0.0 release:
+-   install the 1.0.0 release:
     `nix-env -f https://github.com/freuk/dhrun/archive/1.0.0.tar.gz -iA dhrun`
 
--   install bleeding edge:
-    `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
-
 This pins nixpkgs 18.09. Building should take a minute or two and will
-definitely succeed.
+definitely succeed. You can also try installing the bleeding edge
+version: `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
 
 I have not tried building this code using stack or any other tool, but
 here are the hackage dependencies for `dhrun` and its tests:
