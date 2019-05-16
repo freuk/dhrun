@@ -9,7 +9,7 @@ poor(infix strings only). It supports concurrency and monitors streams,
 however. It was written to create a configuration layer to control
 integration tests for single-node client-server applications.
 
-### Use
+##### Use
 
 ``` {.bash}
 dhrun run path/to/config.dhall 
@@ -28,7 +28,7 @@ here document:
 dhrun run <<< "let codebase = /path/package.dhall in codebase.foo bar baz"
 ```
 
-### CLI Interface
+##### CLI Interface
 
 ``` {.hidden}
 dhrun --help
@@ -67,20 +67,17 @@ Available options:
   -h,--help                Show this help text
 ```
 
-### Installation
+##### Installation
 
-get [Nix](https://nixos.org/nix/) and run:
+-   get [Nix](https://nixos.org/nix/)
 
-    nix-env -f https://github.com/freuk/dhrun.git -iA dhrun
+-   run `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
 
-this pins nixpkgs 18.09: building should take a minute or two but will
+This pins nixpkgs 18.09. Building should take a minute or two and will
 definitely succeed.
 
-I have not tried building this code using stack or any other tool.
-
-\`\`\`
-
-The hackage dependencies for `dhrun` and its tests are:
+I have not tried building this code using stack or any other tool, but
+here are the hackage dependencies for `dhrun` and its tests:
 
 `base` `ansi-terminal` `protolude` `mtl` `bytestring` `process`
 `conduit` `unliftio-core` `containers` `conduit-extra` `unix` `yaml`
@@ -91,7 +88,7 @@ The hackage dependencies for `dhrun` and its tests are:
 `tasty-hspec` `tasty-quickcheck` `generic-random` `quickcheck-text`
 `hspec` `dhrun-lib` `Glob`
 
-### Hacking
+##### Hacking
 
 -   `nix-shell` provides a dev environment with cabal-build, ghcid,
     hlint, brittany, and other tools.
