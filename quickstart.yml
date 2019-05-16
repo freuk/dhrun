@@ -1,9 +1,14 @@
 ---
+# this quickstart dhrun specification will create two files
+# in /tmp/dhrun called foo an bar. foo will contain "hello world"
+# and bar will be empty.
+
 # whether to be verbose.
 verbose: null
 # whether to remove the global workdir on startup.
 cleaning: null
-# the global working directory (with creation) - defaults to "./"
+# the global working directory, supports creation if inexistent.
+# defaults to "./".
 workdir: /tmp/dhrun
 # a list of shell commands to run before the concurrent step.
 pre:
@@ -15,10 +20,10 @@ cmds:  # a list of commands with the following structure:
     args:  # arguments
       - hello
       - world
-    # a "filecheck" on out: terminates dhrun successfully as soon as all 'wants'
-    # are observed on *at least one* command, and exits dhrun with an error as
-    # soon as one "avoid" is observed. These specifications are substrings to be
-    # matched.
+    # A "filecheck" on stdout terminates dhrun successfully as soon as all
+    # 'wants' are observed on *at least one* command, and exits dhrun with an
+    # error as soon as one "avoid" is observed. These specifications are
+    # substrings to be matched.
     out:
       filecheck:
         wants:
@@ -35,13 +40,14 @@ cmds:  # a list of commands with the following structure:
       filename: bar
     # a list of "filechecks" to be performed post-execution
     postchecks: null
-    # environment variables to inherit (you want PATH!)
+    # environment variables to inherit (you usually want PATH)
     passvars: ["PATH"]
     # environment variables to enforce
     vars:
-      - value: BAR
-        varname: FOO
-    # timeout in seconds
+      - value: BAZ
+        varname: baz
+    # timeout for this command, in seconds
     timeout: 4
 # a list of shell commands to run after the concurrent step.
-post: null
+post:
+  - echo "quickstart success!"

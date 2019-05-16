@@ -69,11 +69,16 @@ Available options:
 
 ### Installation
 
-There is a small vendored Nix codebase in `/nix` that packages `dhrun`.
-It pins nixpkgs 18.09, so this should take a minute. Note that I have
-not tried building this code using stack.
+get [Nix](https://nixos.org/nix/) and run:
 
-    nix-env -f . -iA dhrun
+    nix-env -f https://github.com/freuk/dhrun.git -iA dhrun
+
+this pins nixpkgs 18.09: building should take a minute or two but will
+definitely succeed.
+
+I have not tried building this code using stack or any other tool.
+
+\`\`\`
 
 The hackage dependencies for `dhrun` and its tests are:
 
@@ -89,8 +94,7 @@ The hackage dependencies for `dhrun` and its tests are:
 ### Hacking
 
 -   `nix-shell` provides a dev environment with cabal-build, ghcid,
-    hlint, brittany, and other tools. There is a small vendored codebase
-    in /nix that provides this.
+    hlint, brittany, and other tools.
 
 -   you need to procure
     [`dhall-to-cabal`](https://github.com/dhall-lang/dhall-to-cabal)
@@ -105,6 +109,8 @@ The hackage dependencies for `dhrun` and its tests are:
     integration.
 
 The structure of the code is the following.
+
+-   `/nix` vendored nix expressions.
 
 -   `/resources` Dhall types and helper functions.
 
