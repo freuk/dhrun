@@ -1,13 +1,13 @@
-Dhall/YAML configurable concurrent job executor with streaming assertion
-checks for linux platforms. `dhrun` starts a list of processes, monitors
-the standard streams for patterns that should be expected or avoided,
-kills the processes when criteria are met and exits accordingly. The
-goals are similar to [venom](https://github.com/ovh/venom). Compared to
-that tool, `dhrun` has only one execution capability(exec) and its
-assertions are poor(infix strings only). It supports concurrency and
-monitors streams online, however. it was written to create a
-configuration layer above runs of single-node integration tests for
-client-server applications.
+##### Dhall/YAML configurable concurrent job executor with streaming assertion checks.
+
+`dhrun` starts a list of processes, monitors the standard streams for
+patterns that should be expected or avoided, kills the processes when
+criteria are met and exits accordingly. The goals are similar to
+[venom](https://github.com/ovh/venom). Compared to that tool, `dhrun`
+has only one execution capability(exec) and its assertions are
+poor(infix strings only). It supports concurrency and monitors streams,
+however. It was written to create a configuration layer to control
+integration tests for single-node client-server applications.
 
 ### Use
 
