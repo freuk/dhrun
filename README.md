@@ -19,8 +19,8 @@ dhrun run path/to/config.yaml
 
 See file [quickstart.yml](./quickstart.yml) for an overview of `dhrun`'s
 capabilities. The [resources](./resources) directory contains the Dhall
-types for the configuration layer, and [examples](./examples/) directory
-contains other example `.yml` and `.dh` configurations.
+types for the configuration layer, and the [examples](./examples/)
+directory contains more `.yml` and `.dh` configurations.
 
 The originally intended workflow is to configure dhrun using a dhall
 codebase. In bash, this might involve a here document:
@@ -29,7 +29,7 @@ codebase. In bash, this might involve a here document:
 dhrun run <<< "let codebase = /path/package.dhall in codebase.foo bar baz"
 ```
 
-You can find an example project-specific configuration
+You can find an example project-specific dhall configuration layer
 [here](https://xgitlab.cels.anl.gov/argo/argopkgs/blob/master/dhrun/all-tests.dh).
 
 ##### CLI Interface
@@ -110,7 +110,7 @@ here are the hackage dependencies for `dhrun` and its tests:
 
 -   use the `./pre-commit.sh` hook.
 
-###### Structure
+##### Structure
 
 -   `/nix` vendored nix expressions.
 
