@@ -7,7 +7,7 @@ criteria are met and exits accordingly. The goals are similar to
 has only one execution capability(exec) and its assertions are
 poor(infix strings only). It supports concurrency and monitors streams,
 however. It was written to create a configuration layer to control
-integration tests for single-node client-server applications.
+single-node integration tests for client-server applications.
 
 ##### Use
 
@@ -27,6 +27,9 @@ here document:
 ``` {.bash}
 dhrun run <<< "let codebase = /path/package.dhall in codebase.foo bar baz"
 ```
+
+You can find an example project-specific configuration
+[here](https://xgitlab.cels.anl.gov/argo/argopkgs/blob/master/dhrun/all-tests.dh).
 
 ##### CLI Interface
 
@@ -105,7 +108,7 @@ here are the hackage dependencies for `dhrun` and its tests:
 -   `direnv allow` for [lorri](https://github.com/target/lorri)
     integration.
 
-The structure of the code is the following.
+###### Structure
 
 -   `/nix` vendored nix expressions.
 
@@ -113,7 +116,7 @@ The structure of the code is the following.
 
 -   `/app` the main cli tool.
 
--   `/examples`s example Dhall and YAML configuration files for dhrun.
+-   `/examples` example Dhall and YAML configuration files for dhrun.
     These also serve as golden tests.
 
 -   `/src` dhrun types and logic.
