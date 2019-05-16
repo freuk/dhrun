@@ -9,7 +9,7 @@ cabal-version: 2.0
 -- 'dhall-to-cabal -- cabal.dh'.
 -- * * * * * * * * * * * * WARNING * * * * * * * * * * * *
 name: dhrun
-version: 0.0.1
+version: 1.0.0
 license: MIT
 license-file: LICENSE
 maintainer: fre@freux.fr

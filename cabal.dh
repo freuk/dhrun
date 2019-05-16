@@ -61,7 +61,7 @@ in    prelude.defaults.Package
     ⫽ { name =
           "dhrun"
       , version =
-          prelude.v "0.0.1"
+          prelude.v "1.0.0"
       , author =
           "Valentin Reis"
       , build-type =
