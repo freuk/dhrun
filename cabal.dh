@@ -10,6 +10,7 @@ let defexts =
       , types.Extension.ScopedTypeVariables True
       , types.Extension.ImplicitPrelude False
       , types.Extension.OverloadedStrings True
+      , types.Extension.ViewPatterns True
       ]
 
 let deflang =
@@ -122,6 +123,7 @@ in    prelude.defaults.Package
                         nobounds
                         [ "base"
                         , "ansi-terminal"
+                        , "time"
                         , "protolude"
                         , "mtl"
                         , "bytestring"

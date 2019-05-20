@@ -5,7 +5,7 @@ cabal-version: 2.0
 -- Do not edit it by hand, because your changes will be over-written!
 --
 -- Instead, edit the source Dhall file, namely
--- './cabal.dh', and re-generate this file by running
+-- 'cabal.dh', and re-generate this file by running
 -- 'dhall-to-cabal -- cabal.dh'.
 -- * * * * * * * * * * * * WARNING * * * * * * * * * * * *
 name: dhrun
@@ -37,7 +37,7 @@ library dhrun-lib
     hs-source-dirs: src
     default-language: Haskell2010
     default-extensions: LambdaCase RecordWildCards ScopedTypeVariables
-                        NoImplicitPrelude OverloadedStrings
+                        NoImplicitPrelude OverloadedStrings ViewPatterns
     ghc-options: -threaded -Wall -Wcompat -Wincomplete-uni-patterns
                  -Wincomplete-record-updates -Wmissing-home-modules -Widentities
                  -Wredundant-constraints -Wcpp-undef -fwarn-tabs
@@ -48,6 +48,7 @@ library dhrun-lib
     build-depends:
         base -any,
         ansi-terminal -any,
+        time -any,
         protolude -any,
         mtl -any,
         bytestring -any,
@@ -68,7 +69,7 @@ executable dhrun
     hs-source-dirs: app
     default-language: Haskell2010
     default-extensions: LambdaCase RecordWildCards ScopedTypeVariables
-                        NoImplicitPrelude OverloadedStrings
+                        NoImplicitPrelude OverloadedStrings ViewPatterns
     ghc-options: -threaded -Wall -Wcompat -Wincomplete-uni-patterns
                  -Wincomplete-record-updates -Wmissing-home-modules -Widentities
                  -Wredundant-constraints -Wcpp-undef -fwarn-tabs
@@ -93,7 +94,7 @@ test-suite Tests
     hs-source-dirs: tests
     default-language: Haskell2010
     default-extensions: LambdaCase RecordWildCards ScopedTypeVariables
-                        NoImplicitPrelude OverloadedStrings
+                        NoImplicitPrelude OverloadedStrings ViewPatterns
     ghc-options: -threaded -Wall -Wcompat -Wincomplete-uni-patterns
                  -Wincomplete-record-updates -Wmissing-home-modules -Widentities
                  -Wredundant-constraints -Wcpp-undef -fwarn-tabs
