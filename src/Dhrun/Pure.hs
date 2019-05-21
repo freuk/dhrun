@@ -48,7 +48,7 @@ data CmdResult =
   | ThrewException Cmd Text
   | DiedFailure Cmd Int
   | DiedExpected Cmd -- | if the command was expected in exitcode x and died x
-  | DiedUnExpected Cmd Int -- | command expected in exitcode x and died y!=x
+  | DiedUnExpected Cmd ExitCode -- | command expected in exitcode x and died y!=x
   | FoundAll Cmd
   | FoundIllegal Cmd Text Std
   | OutputLacking Cmd Std
@@ -143,15 +143,10 @@ finalizeCmd
   -> Either (Either SomeException ()) (Either SomeException ())
   -> ProcessWas
   -> CmdResult
-finalizeCmd c _ (Died (ExitFailure n)) = case exitcode c of
-  Nothing -> DiedFailure c n
-  Just (ExitFailure n2) ->
-    if n == n2 then DiedExpected c else DiedUnExpected c n2
-  Just ExitSuccess -> DiedUnExpected c 0
-finalizeCmd c _ (Died ExitSuccess) = case exitcode c of
-  Nothing               -> DiedLegal c
-  Just (ExitFailure n2) -> DiedUnExpected c n2
-  Just ExitSuccess      -> DiedExpected c
+finalizeCmd c _ (Died ec) = case exitcode c of
+  Nothing -> DiedLegal c
+  Just ecExpect ->
+    if ecExpect == ec then DiedExpected c else DiedUnExpected c ec
 finalizeCmd c ei _ = rightFinalizer ei
  where
   rightFinalizer (Left  (Right ())) = legalOrLacking Out

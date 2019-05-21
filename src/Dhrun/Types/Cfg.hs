@@ -154,7 +154,7 @@ toInternalCmd :: DT.Cmd -> Cmd
 toInternalCmd DT.Cmd {..} = Cmd
   { name       = CommandName name
   , exitcode   = case exitcode of
-                   Just 1 -> Just ExitSuccess
+                   Just 0 -> Just ExitSuccess
                    Just x -> Just $ ExitFailure (fromInteger x)
                    Nothing -> Nothing
   , args       = Arg <$> args
