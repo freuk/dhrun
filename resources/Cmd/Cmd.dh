@@ -8,6 +8,8 @@ let Check = ./../Check/Check.dh
 
 in  { name :
         Text
+    , exitcode :
+        Optional Integer
     , args :
         List Text
     , out :

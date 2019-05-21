@@ -46,6 +46,7 @@ data Cfg = Cfg
 
 data Cmd = Cmd {
     name        :: Text
+  , exitcode    :: Maybe Integer
   , args        :: Maybe [Text]
   , vars        :: Maybe [DT.EnvVar]
   , passvars    :: Maybe [Text]
@@ -75,6 +76,7 @@ toInternalCheck cp =
 toInternalCmd :: Cmd -> DT.Cmd
 toInternalCmd c = DT.Cmd
   { name       = name c
+  , exitcode   = exitcode c
   , args       = fromMaybe [] $ args c
   , vars       = fromMaybe [] $ vars c
   , passvars   = fromMaybe [] $ passvars c
@@ -101,6 +103,7 @@ fromInternalCmd :: DT.Cmd -> Cmd
 fromInternalCmd c = Cmd {..}
  where
   name    = DT.name c
+  exitcode = DT.exitcode c
   out     = fromInternalCheck <$> DT.out c
   err     = fromInternalCheck <$> DT.err c
   timeout = DT.timeout c

@@ -43,10 +43,12 @@ import           Control.Arrow
                    ( (***) )
 
 data CmdResult =
-    Timeout Cmd
-  | DiedLegal Cmd
+    Timeout Cmd -- | if the command died with a timeout
+  | DiedLegal Cmd -- | if the command wasnt expected to do anything and died 1
   | ThrewException Cmd Text
   | DiedFailure Cmd Int
+  | DiedExpected Cmd -- | if the command was expected in exitcode x and died x
+  | DiedUnExpected Cmd Int -- | command expected in exitcode x and died y!=x
   | FoundAll Cmd
   | FoundIllegal Cmd Text Std
   | OutputLacking Cmd Std
@@ -103,6 +105,11 @@ concludeCmd _ (ConduitException c e) =
 concludeCmd _ (ThrewException c e) =
   Left $ "This process' execution ended with an exception: " <> e : T.lines
     (toS $ encodeCmd c)
+concludeCmd _ (DiedUnExpected c n) =
+  Left $ "process exited with inadequate exit code " <> show n <> ": " : T.lines
+    (toS $ encodeCmd c)
+concludeCmd _ (DiedExpected c) =
+  Right $ "process exited with adequate exit code " <> ": " <> toS (encodeCmd c)
 
 stdToS :: Std -> Text
 stdToS Out = "stdout"
@@ -136,8 +143,16 @@ finalizeCmd
   -> Either (Either SomeException ()) (Either SomeException ())
   -> ProcessWas
   -> CmdResult
-finalizeCmd c _  (Died (ExitFailure n)) = DiedFailure c n
-finalizeCmd c ei _                      = rightFinalizer ei
+finalizeCmd c _ (Died (ExitFailure n)) = case exitcode c of
+  Nothing -> DiedFailure c n
+  Just (ExitFailure n2) ->
+    if n == n2 then DiedExpected c else DiedUnExpected c n2
+  Just ExitSuccess -> DiedUnExpected c 0
+finalizeCmd c _ (Died ExitSuccess) = case exitcode c of
+  Nothing               -> DiedLegal c
+  Just (ExitFailure n2) -> DiedUnExpected c n2
+  Just ExitSuccess      -> DiedExpected c
+finalizeCmd c ei _ = rightFinalizer ei
  where
   rightFinalizer (Left  (Right ())) = legalOrLacking Out
   rightFinalizer (Right (Right ())) = legalOrLacking Err

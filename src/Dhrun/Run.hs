@@ -179,10 +179,10 @@ runMultipleV getter desc = getter <$> ask >>= \case
                 <> " command."
                 <> x
 
--- | Runs a single command. should be the only 'complex' function in this codebase.
+-- | Runs a single command. should be the only 'complex' function in this codebaseaside from runAsyncs. TODO: add the exitcode check functionality.
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
-  for_ otherwd (\(WorkDir swd) -> SD.createDirectoryIfMissing True (toS swd))
+  for_ otherwd $ \(WorkDir swd) -> SD.createDirectoryIfMissing True (toS swd)
   fromMaybe (Timeout c) <$> maybeTimeout go timeout
  where
   realwd = maybe (toS wd) toS otherwd

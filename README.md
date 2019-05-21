@@ -8,7 +8,9 @@ Its goals are similar to [venom](https://github.com/ovh/venom). Compared
 to that tool, `dhrun` has only one execution capability(exec) and its
 assertions are poor(infix strings only). It supports concurrency and
 monitors streams, however. It was written to create a configuration
-layer to control single-node integration tests for a linux daemon.
+layer to control single-node integration tests for a linux daemon. See
+the [last section](#%20See%20also) of this file for a list of similar
+tools to `dhrun`.
 
 ##### Use
 
@@ -85,7 +87,7 @@ version: `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
 I have not tried building this code using stack or any other tool, but
 here are the hackage dependencies for `dhrun` and its tests:
 
-`base` `ansi-terminal` `protolude` `mtl` `bytestring` `process`
+`base` `ansi-terminal` `time` `protolude` `mtl` `bytestring` `process`
 `conduit` `unliftio-core` `containers` `conduit-extra` `unix` `yaml`
 `aeson` `text` `directory` `dhall` `base` `protolude` `directory`
 `bytestring` `editor-open` `dhrun-lib` `filepath` `optparse-applicative`
@@ -126,3 +128,7 @@ here are the hackage dependencies for `dhrun` and its tests:
 -   `/src` dhrun types and logic.
 
 -   `/tests` golden, unit, quickcheck tests.
+
+##### See also
+
+-   [tasty-program](http://hackage.haskell.org/package/tasty-program)

@@ -110,6 +110,7 @@ data FileCheck a = FileCheck {
 
 data Cmd = Cmd {
     name        :: CommandName
+  , exitcode    :: Maybe ExitCode
   , args        :: [Arg]
   , vars        :: [EnvVar]
   , passvars    :: [VarName]
@@ -152,6 +153,10 @@ fromInternal Cfg {..} = DT.Cfg
 toInternalCmd :: DT.Cmd -> Cmd
 toInternalCmd DT.Cmd {..} = Cmd
   { name       = CommandName name
+  , exitcode   = case exitcode of
+                   Just 1 -> Just ExitSuccess
+                   Just x -> Just $ ExitFailure (fromInteger x)
+                   Nothing -> Nothing
   , args       = Arg <$> args
   , vars       = vars <&> \DT.EnvVar {..} ->
     EnvVar {varname = VarName varname, value = VarValue value}
@@ -180,6 +185,10 @@ fromInternalCmd Cmd {..} = DT.Cmd
   , postchecks = fromInternalFileCheck <$> postchecks
   , timeout    = fromInteger . toInteger <$> timeout
   , name       = toS name
+  , exitcode   = case exitcode of
+                   Just ExitSuccess -> Just 1
+                   Just (ExitFailure n) -> Just $ toInteger n
+                   Nothing -> Nothing
   , args       = toS <$> args
   , vars       = vars <&> \case
     EnvVar {..} -> DT.EnvVar {varname = toS varname, value = toS value}

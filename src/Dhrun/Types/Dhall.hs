@@ -53,6 +53,7 @@ data FileCheck a = FileCheck {
 
 data Cmd = Cmd {
     name        :: Text
+  , exitcode    :: Maybe Integer
   , args        :: [Text]
   , vars        :: [EnvVar]
   , otherwd     :: Maybe Text

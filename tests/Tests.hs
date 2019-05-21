@@ -58,10 +58,12 @@ instance Arbitrary CmdResult where
   arbitrary = genericArbitraryU
 
 goldenYml :: FilePath -> TestTree
-goldenYml fn = goldenVsString
-  fn
-  (fn <.> ".yml")
-  (toS . encodeCfg <$> inputCfg (toS $ "./" <> fn <.> "dh"))
+goldenYml fn = testCase (toS fn)
+  (do
+    ymlCfg <- decodeCfgFile (toS $ fn <.> ".yml")
+    dhCfg <- inputCfg (toS $ "./" <> fn <.> "dh")
+    assertEqual "files not equal" ymlCfg dhCfg
+  )
 
 main :: IO ()
 main = do
@@ -91,6 +93,7 @@ qcProps = testGroup
  where
   shouldConclude :: CmdResult -> Either a b -> Bool
   shouldConclude cmdresult concluded = case cmdresult of
-    DiedLegal{} -> True
-    FoundAll{}  -> isRight concluded
-    _           -> isLeft concluded
+    DiedLegal{}    -> True
+    FoundAll{}     -> isRight concluded
+    DiedExpected{} -> isRight concluded
+    _              -> isLeft concluded

@@ -6,6 +6,8 @@ let config =
         { cmds =
             [ { name =
                   "echo"
+              , exitcode =
+                  [] : Optional Integer
               , args =
                   [ "hello", "world" ] : List Text
               , out =

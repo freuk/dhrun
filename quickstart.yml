@@ -38,6 +38,8 @@ cmds:  # a list of commands with the following structure:
         avoids:
           - Traceback
       filename: bar
+    # the expected exit code. leave 'null' or omit for 0
+    exitcode: null
     # a list of "filechecks" to be performed post-execution
     postchecks: null
     # environment variables to inherit (you usually want PATH)
@@ -46,7 +48,7 @@ cmds:  # a list of commands with the following structure:
     vars:
       - value: BAZ
         varname: baz
-    # timeout for this command, in seconds
+    # timeout for this command, in seconds. leave null or omit for disable.
     timeout: 4
 # a list of shell commands to run after the concurrent step.
 post:
