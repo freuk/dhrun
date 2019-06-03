@@ -1,9 +1,14 @@
-{ Normal =
-    ./Verbosity/Normal.dh
-, emptyCheck =
-    ./Check/empty.dh
-, emptyVars =
-    ./EnvVar/empty.dh
-, emptyCmd =
-    ./Cmd/empty.dh
-}
+let types = ./types.dh
+
+in    { Normal =
+          ./Verbosity/Normal.dh
+      , Verbose =
+          ./Verbosity/Verbose.dh
+      , emptyCheck =
+          ./Check/empty.dh
+      , emptyVars =
+          ./EnvVar/empty.dh
+      , emptyCmd =
+          ./Cmd/empty.dh
+      }
+    : types.Package

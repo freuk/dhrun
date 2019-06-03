@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -24,6 +25,14 @@ import           Dhrun.Types.Cfg                                   as DI
 import           Dhrun.Run                                         as DR
 import           Options.Applicative                               as OA
 import           Dhall
+import qualified Dhall.Core                                        as Dhall
+                   ( Expr )
+import qualified Dhall.Parser                                      as Dhall
+                   ( Src )
+import qualified Dhall.TypeCheck                                   as Dhall
+                   ( X )
+import qualified Dhall.TH
+                   ( staticDhallExpression )
 import           System.FilePath.Posix
 import           System.Directory
 import           GHC.IO.Encoding
@@ -118,6 +127,9 @@ load MainCfg {..} =
             <> "Please use something in {.yml,.yaml,.dh,.dhall} ."
             )
  where
+  dhrunTypes :: Dhall.Expr Dhall.Src Dhall.X
+  dhrunTypes =
+    $(Dhall.TH.staticDhallExpression "./resources/types.dh")
   v = verbosity == Verbose
   overrideV x = x
     { DI.verbosity = if (DI.verbosity x == Verbose) || v

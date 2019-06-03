@@ -9,9 +9,11 @@ let
       , hlint
       , protolude
       , shake
+      , Cabal
       , ghcid
       , typed-process
       , unix
+      , cabal-helper
       }:
       mkDerivation {
         pname = "dummy";
@@ -19,17 +21,18 @@ let
         src = "";
         libraryHaskellDepends = [
             cabal-install
-            apply-refact
-            hdevtools
-            hindent
-            fswatch
-            hlint
-            protolude
+            #apply-refact
+            #hdevtools
+            #hindent
+            #fswatch
+            #hlint
+            #protolude
             shake
-            Glob
+            Cabal
+            #Glob
             ghcid
-            typed-process
-            unix
+            #typed-process
+            #unix
         ];
         description = "";
         license = stdenv.lib.licenses.mit;

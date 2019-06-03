@@ -1,1 +1,1 @@
-let Normal = < Verbose = {=} | Normal : {} > in Normal
+let Verbose = < Verbose = {=} | Normal : {} > in Verbose

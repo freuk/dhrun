@@ -1,11 +1,29 @@
-{ Cmd =
-    ./Cmd/Cmd.dh
-, EnvVar =
-    ./EnvVar/EnvVar.dh
-, Check =
-    ./Check/Check.dh
-, Config =
-    ./Config/Config.dh
-, FileCheck =
-    ./FileCheck/FileCheck.dh
-}
+let base =
+      { Verbosity =
+          ./Verbosity/Verbosity.dh
+      , Cmd =
+          ./Cmd/Cmd.dh
+      , EnvVar =
+          ./EnvVar/EnvVar.dh
+      , Check =
+          ./Check/Check.dh
+      , Config =
+          ./Config/Config.dh
+      , FileCheck =
+          ./FileCheck/FileCheck.dh
+      }
+
+in    base
+    ⫽ { Package =
+          { Normal :
+              base.Verbosity
+          , Verbose :
+              base.Verbosity
+          , emptyCheck :
+              base.Check
+          , emptyVars :
+              List base.EnvVar
+          , emptyCmd :
+              { name : Text, outfile : Text, errfile : Text } → base.Cmd
+          }
+      }

@@ -1,6 +1,6 @@
 {-# language DataKinds #-}
 {-# language FlexibleContexts #-}
-{-| 
+{-|
 Module      : Dhrun.Run
 Description : runner
 Copyright   : (c) Valentin Reis, 2018
