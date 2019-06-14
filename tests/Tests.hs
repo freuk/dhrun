@@ -58,10 +58,11 @@ instance Arbitrary CmdResult where
   arbitrary = genericArbitraryU
 
 goldenYml :: FilePath -> TestTree
-goldenYml fn = testCase (toS fn)
+goldenYml fn = testCase
+  (toS fn)
   (do
     ymlCfg <- decodeCfgFile (toS $ fn <.> ".yml")
-    dhCfg <- inputCfg (toS $ "./" <> fn <.> "dh")
+    dhCfg  <- inputCfg (toS $ "./" <> fn <.> "dh")
     assertEqual "files not equal" ymlCfg dhCfg
   )
 

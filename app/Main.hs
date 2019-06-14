@@ -127,9 +127,6 @@ load MainCfg {..} =
             <> "Please use something in {.yml,.yaml,.dh,.dhall} ."
             )
  where
-  dhrunTypes :: Dhall.Expr Dhall.Src Dhall.X
-  dhrunTypes =
-    $(Dhall.TH.staticDhallExpression "./resources/types.dh")
   v = verbosity == Verbose
   overrideV x = x
     { DI.verbosity = if (DI.verbosity x == Verbose) || v

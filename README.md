@@ -8,9 +8,7 @@ Its goals are similar to [venom](https://github.com/ovh/venom). Compared
 to that tool, `dhrun` has only one execution capability(exec) and its
 assertions are poor(infix strings only). It supports concurrency and
 monitors streams, however. It was written to create a configuration
-layer to control single-node integration tests for a linux daemon. See
-the [last section](#%20See%20also) of this file for a list of similar
-tools to `dhrun`.
+layer to control single-node integration tests for a linux daemon.
 
 ##### Use
 
@@ -131,4 +129,5 @@ here are the hackage dependencies for `dhrun` and its tests:
 
 ##### See also
 
+-   [venom](https://github.com/ovh/venom)
 -   [tasty-program](http://hackage.haskell.org/package/tasty-program)
