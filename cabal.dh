@@ -20,25 +20,26 @@ let deflang =
 let defcopts =
         prelude.defaults.CompilerOptions
       ⫽ { GHC =
-            [ "-threaded"
-            , "-Wall"
-            , "-Wcompat"
-            , "-Wincomplete-uni-patterns"
-            , "-Wincomplete-record-updates"
-            , "-Wmissing-home-modules"
-            , "-Widentities"
-            , "-Wredundant-constraints"
-            , "-Wcpp-undef"
-            , "-fwarn-tabs"
-            , "-fwarn-unused-imports"
-            , "-fwarn-missing-signatures"
-            , "-fwarn-name-shadowing"
-            , "-fprint-potential-instances"
-            , "-Wmissing-export-lists"
-            , "-fwarn-unused-do-bind"
-            , "-fwarn-wrong-do-bind"
-            , "-fwarn-incomplete-patterns"
-            ] : List Text
+              [ "-threaded"
+              , "-Wall"
+              , "-Wcompat"
+              , "-Wincomplete-uni-patterns"
+              , "-Wincomplete-record-updates"
+              , "-Wmissing-home-modules"
+              , "-Widentities"
+              , "-Wredundant-constraints"
+              , "-Wcpp-undef"
+              , "-fwarn-tabs"
+              , "-fwarn-unused-imports"
+              , "-fwarn-missing-signatures"
+              , "-fwarn-name-shadowing"
+              , "-fprint-potential-instances"
+              , "-Wmissing-export-lists"
+              , "-fwarn-unused-do-bind"
+              , "-fwarn-wrong-do-bind"
+              , "-fwarn-incomplete-patterns"
+              ]
+            : List Text
         }
 
 let copts =
@@ -53,6 +54,21 @@ let copts =
 let map = https://prelude.dhall-lang.org/List/map
 
 let nobound = λ(p : Text) → { bounds = prelude.anyVersion, package = p }
+
+let genbounds =
+      λ(p : Text)
+      ->  λ(lo : Text)
+      → λ(hi : Text)
+      → { bounds =
+            prelude.intersectVersionRanges
+            ( prelude.unionVersionRanges
+              (prelude.thisVersion (prelude.v lo))
+              (prelude.laterVersion (prelude.v lo))
+            )
+            (prelude.earlierVersion (prelude.v hi))
+        , package =
+            p
+        }
 
 let nobounds =
         λ(ps : List Text)
@@ -82,16 +98,14 @@ in    prelude.defaults.Package
                     , hs-source-dirs =
                         [ "app" ]
                     , build-depends =
-                        nobounds
-                        [ "base"
-                        , "protolude"
-                        , "directory"
-                        , "bytestring"
-                        , "editor-open"
-                        , "dhrun-lib"
-                        , "filepath"
-                        , "optparse-applicative"
-                        , "dhall"
+                        [ genbounds "base" "4.11.1" "4.12"
+                        , genbounds "bytestring" "0.10.8" "0.11"
+                        , genbounds "directory" "1.3.1" "1.4"
+                        , genbounds "filepath" "1.4.2" "1.5"
+                        , genbounds "dhall" "1.24.0" "1.25"
+                        , genbounds "optparse-applicative" "0.15.0" "0.16"
+                        , genbounds "protolude" "0.2.2" "0.3"
+                        , genbounds "editor-open" "0.6.0" "0.7"
                         ]
                     }
                   ⫽ copts
@@ -120,24 +134,22 @@ in    prelude.defaults.Package
                   λ(config : types.Config)
                 →   prelude.defaults.Library
                   ⫽ { build-depends =
-                        nobounds
-                        [ "base"
-                        , "ansi-terminal"
-                        , "time"
-                        , "protolude"
-                        , "mtl"
-                        , "bytestring"
-                        , "process"
-                        , "conduit"
-                        , "unliftio-core"
-                        , "containers"
-                        , "conduit-extra"
-                        , "unix"
-                        , "yaml"
-                        , "aeson"
-                        , "text"
-                        , "directory"
-                        , "dhall"
+                        [ genbounds "base" "4.11.1" "4.12"
+                        , genbounds "bytestring" "0.10.8" "0.11"
+                        , genbounds "containers" "0.5.11" "0.6"
+                        , genbounds "text" "1.2.3" "1.3"
+                        , genbounds "unix" "2.7.2" "2.8"
+                        , genbounds "time" "1.8.0" "1.9"
+                        , genbounds "ansi-terminal" "0.9.1" "0.10"
+                        , genbounds "conduit" "1.3.0" "1.4"
+                        , genbounds "directory" "1.3.1" "1.4"
+                        , genbounds "mtl" "2.2.2" "2.3"
+                        , genbounds "unliftio-core" "0.1.2" "0.2"
+                        , genbounds "conduit-extra" "1.3.0" "1.4"
+                        , genbounds "process" "1.6.3" "1.7"
+                        , genbounds "dhall" "1.24.0" "1.25"
+                        , genbounds "protolude" "0.2.2" "0.3"
+                        , genbounds "yaml" "0.8.32" "0.9"
                         ]
                     , hs-source-dirs =
                         [ "src" ]
