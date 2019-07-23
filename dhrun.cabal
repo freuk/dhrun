@@ -38,7 +38,7 @@ library dhrun-lib
     default-language: Haskell2010
     default-extensions: LambdaCase RecordWildCards ScopedTypeVariables
                         NoImplicitPrelude OverloadedStrings ViewPatterns
-    ghc-options: -threaded -Wall -Wcompat -Wincomplete-uni-patterns
+    ghc-options: -Wall -Wcompat -Wincomplete-uni-patterns
                  -Wincomplete-record-updates -Wmissing-home-modules -Widentities
                  -Wredundant-constraints -Wcpp-undef -fwarn-tabs
                  -fwarn-unused-imports -fwarn-missing-signatures
@@ -69,21 +69,21 @@ executable dhrun
     default-language: Haskell2010
     default-extensions: LambdaCase RecordWildCards ScopedTypeVariables
                         NoImplicitPrelude OverloadedStrings ViewPatterns
-    ghc-options: -threaded -Wall -Wcompat -Wincomplete-uni-patterns
+    ghc-options: -Wall -Wcompat -Wincomplete-uni-patterns
                  -Wincomplete-record-updates -Wmissing-home-modules -Widentities
                  -Wredundant-constraints -Wcpp-undef -fwarn-tabs
                  -fwarn-unused-imports -fwarn-missing-signatures
                  -fwarn-name-shadowing -fprint-potential-instances
                  -Wmissing-export-lists -fwarn-unused-do-bind -fwarn-wrong-do-bind
-                 -fwarn-incomplete-patterns
+                 -fwarn-incomplete-patterns -threaded
     build-depends:
-        base (==4.11.1 || >4.11.1) && <4.12,
-        bytestring (==0.10.8 || >0.10.8) && <0.11,
-        directory (==1.3.1 || >1.3.1) && <1.4,
-        filepath (==1.4.2 || >1.4.2) && <1.5,
-        dhall (==1.24.0 || >1.24.0) && <1.25,
+        base >1 && <1,
+        bytestring >1 && <1,
+        directory >1 && <1,
+        filepath >1 && <1,
+        dhall >1 && <1,
         optparse-applicative (==0.15.0 || >0.15.0) && <0.16,
-        protolude (==0.2.2 || >0.2.2) && <0.3,
+        protolude >1 && <1,
         editor-open (==0.6.0 || >0.6.0) && <0.7
 
 test-suite Tests
@@ -93,31 +93,31 @@ test-suite Tests
     default-language: Haskell2010
     default-extensions: LambdaCase RecordWildCards ScopedTypeVariables
                         NoImplicitPrelude OverloadedStrings ViewPatterns
-    ghc-options: -threaded -Wall -Wcompat -Wincomplete-uni-patterns
+    ghc-options: -Wall -Wcompat -Wincomplete-uni-patterns
                  -Wincomplete-record-updates -Wmissing-home-modules -Widentities
                  -Wredundant-constraints -Wcpp-undef -fwarn-tabs
                  -fwarn-unused-imports -fwarn-missing-signatures
                  -fwarn-name-shadowing -fprint-potential-instances
                  -Wmissing-export-lists -fwarn-unused-do-bind -fwarn-wrong-do-bind
-                 -fwarn-incomplete-patterns
+                 -fwarn-incomplete-patterns -threaded
     build-depends:
-        base -any,
-        protolude -any,
-        dhall -any,
-        yaml -any,
-        aeson -any,
-        filepath -any,
-        mtl -any,
-        bytestring -any,
-        text -any,
-        unliftio -any,
-        tasty -any,
-        tasty-hunit -any,
-        tasty-golden -any,
-        tasty-hspec -any,
-        tasty-quickcheck -any,
-        generic-random -any,
-        quickcheck-text -any,
-        hspec -any,
-        dhrun-lib -any,
-        Glob -any
+        base >1 && <1,
+        protolude >1 && <1,
+        dhall >1 && <1,
+        yaml >1 && <1,
+        aeson >1 && <1,
+        filepath >1 && <1,
+        mtl >1 && <1,
+        bytestring >1 && <1,
+        text >1 && <1,
+        unliftio >1 && <1,
+        tasty >1 && <1,
+        tasty-hunit >1 && <1,
+        tasty-golden >1 && <1,
+        tasty-hspec >1 && <1,
+        tasty-quickcheck >1 && <1,
+        generic-random >1 && <1,
+        quickcheck-text >1 && <1,
+        hspec >1 && <1,
+        dhrun-lib >1 && <1,
+        Glob >1 && <1

@@ -18,46 +18,48 @@ let deflang =
       < Haskell2010 = {=} | UnknownLanguage : { _1 : Text } | Haskell98 : {} >
 
 let defcopts =
-        prelude.defaults.CompilerOptions
-      ⫽ { GHC =
-              [ "-threaded"
-              , "-Wall"
-              , "-Wcompat"
-              , "-Wincomplete-uni-patterns"
-              , "-Wincomplete-record-updates"
-              , "-Wmissing-home-modules"
-              , "-Widentities"
-              , "-Wredundant-constraints"
-              , "-Wcpp-undef"
-              , "-fwarn-tabs"
-              , "-fwarn-unused-imports"
-              , "-fwarn-missing-signatures"
-              , "-fwarn-name-shadowing"
-              , "-fprint-potential-instances"
-              , "-Wmissing-export-lists"
-              , "-fwarn-unused-do-bind"
-              , "-fwarn-wrong-do-bind"
-              , "-fwarn-incomplete-patterns"
-              ]
-            : List Text
-        }
+        λ(addcopts : List Text)
+      →   prelude.defaults.CompilerOptions
+        ⫽ { GHC =
+                  [ "-Wall"
+                  , "-Wcompat"
+                  , "-Wincomplete-uni-patterns"
+                  , "-Wincomplete-record-updates"
+                  , "-Wmissing-home-modules"
+                  , "-Widentities"
+                  , "-Wredundant-constraints"
+                  , "-Wcpp-undef"
+                  , "-fwarn-tabs"
+                  , "-fwarn-unused-imports"
+                  , "-fwarn-missing-signatures"
+                  , "-fwarn-name-shadowing"
+                  , "-fprint-potential-instances"
+                  , "-Wmissing-export-lists"
+                  , "-fwarn-unused-do-bind"
+                  , "-fwarn-wrong-do-bind"
+                  , "-fwarn-incomplete-patterns"
+                  ]
+                # addcopts
+              : List Text
+          }
 
 let copts =
-      { compiler-options =
-          defcopts
-      , default-extensions =
-          defexts
-      , default-language =
-          deflang
-      }
+        λ(addcopts : List Text)
+      → { compiler-options =
+            defcopts addcopts
+        , default-extensions =
+            defexts
+        , default-language =
+            deflang
+        }
 
 let map = https://prelude.dhall-lang.org/List/map
 
-let nobound = λ(p : Text) → { bounds = prelude.anyVersion, package = p }
+let nobound = λ(p : Text) → { bounds = prelude.noVersion, package = p }
 
 let genbounds =
-      λ(p : Text)
-      ->  λ(lo : Text)
+        λ(p : Text)
+      → λ(lo : Text)
       → λ(hi : Text)
       → { bounds =
             prelude.intersectVersionRanges
@@ -98,17 +100,17 @@ in    prelude.defaults.Package
                     , hs-source-dirs =
                         [ "app" ]
                     , build-depends =
-                        [ genbounds "base" "4.11.1" "4.12"
-                        , genbounds "bytestring" "0.10.8" "0.11"
-                        , genbounds "directory" "1.3.1" "1.4"
-                        , genbounds "filepath" "1.4.2" "1.5"
-                        , genbounds "dhall" "1.24.0" "1.25"
+                        [ nobound "base"
+                        , nobound "bytestring"
+                        , nobound "directory"
+                        , nobound "filepath"
+                        , nobound "dhall"
                         , genbounds "optparse-applicative" "0.15.0" "0.16"
-                        , genbounds "protolude" "0.2.2" "0.3"
+                        , nobound "protolude"
                         , genbounds "editor-open" "0.6.0" "0.7"
                         ]
                     }
-                  ⫽ copts
+                  ⫽ copts ([ "-threaded" ] : List Text)
             , name =
                 "dhrun"
             }
@@ -162,7 +164,7 @@ in    prelude.defaults.Package
                         , "Dhrun.Conduit"
                         ]
                     }
-                  ⫽ copts
+                  ⫽ copts ([] : List Text)
             , name =
                 "dhrun-lib"
             }
@@ -207,7 +209,7 @@ in    prelude.defaults.Package
                     , hs-source-dirs =
                         [ "tests" ]
                     }
-                  ⫽ copts
+                  ⫽ copts ([ "-threaded" ] : List Text)
             }
           ]
       }
