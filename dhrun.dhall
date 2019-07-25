@@ -49,8 +49,6 @@ let copts =
             deflang
         }
 
-let map = https://prelude.dhall-lang.org/List/map
-
 let nobound = λ(p : Text) → { bounds = prelude.anyVersion, package = p }
 
 let genbounds =
@@ -67,10 +65,6 @@ let genbounds =
         , package =
             p
         }
-
-let nobounds =
-        λ(ps : List Text)
-      → map Text { bounds : types.VersionRange, package : Text } nobound ps
 
 let deps =
       { dhrun-lib =
