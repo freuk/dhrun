@@ -151,7 +151,7 @@ in    prelude.defaults.Package
       , category =
           "tools"
       , description =
-          "reads process information from a dhall configuration and executes asynchronous processes."
+          "`dhrun` starts a list of (Unix) processes, monitors the standard streams for patterns that should be expected or avoided, kills the processes when criteria are met and exits accordingly. It is configured using either [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/)."
       , executables =
           [ { executable =
                   λ(config : types.Config)
@@ -189,7 +189,7 @@ in    prelude.defaults.Package
             ⫽ { type =
                   Some types.RepoType.Git
               , location =
-                  Some "https://xgitlab.mcs.anl.gov/vreis/dhrun"
+                  Some "https://github.com/freuk/dhrun"
               }
           ]
       , sub-libraries =
@@ -231,7 +231,7 @@ in    prelude.defaults.Package
             }
           ]
       , synopsis =
-          "dhall async CI executor"
+          "`dhrun`: [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/) configurable concurrent process executor with streaming assertions."
       , test-suites =
           [ { name =
                 "Tests"
