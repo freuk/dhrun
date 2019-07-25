@@ -1,8 +1,6 @@
-let prelude =
-      https://raw.githubusercontent.com/dhall-lang/dhall-to-cabal/1.3.2.0/dhall/prelude.dhall
+let prelude = ./cabal/prelude.dhall
 
-let types =
-      https://raw.githubusercontent.com/dhall-lang/dhall-to-cabal/1.3.2.0/dhall/types.dhall
+let types = ./cabal/types.dhall
 
 let defexts =
       [ types.Extension.LambdaCase True
@@ -13,9 +11,7 @@ let defexts =
       , types.Extension.ViewPatterns True
       ]
 
-let deflang =
-      Some
-      < Haskell2010 = {=} | UnknownLanguage : { _1 : Text } | Haskell98 : {} >
+let deflang = Some types.Language.Haskell2010
 
 let defcopts =
         λ(addcopts : List Text)
@@ -77,7 +73,9 @@ let nobounds =
       → map Text { bounds : types.VersionRange, package : Text } nobound ps
 
 let deps =
-      { base =
+      { dhrun-lib =
+          nobound "dhrun-lib"
+      , base =
           genbounds "base" "4.11.1" "4.12"
       , bytestring =
           genbounds "bytestring" "0.10.8" "0.11"
@@ -115,6 +113,28 @@ let deps =
           genbounds "optparse-applicative" "0.15.0" "0.16"
       , editor-open =
           genbounds "editor-open" "0.6.0" "0.7"
+      , tasty =
+          nobound "tasty"
+      , aeson =
+          nobound "aeson"
+      , unliftio =
+          nobound "unliftio"
+      , tasty-hunit =
+          nobound "tasty-hunit"
+      , tasty-golden =
+          nobound "tasty-golden"
+      , tasty-hspec =
+          nobound "tasty-hspec"
+      , tasty-quickcheck =
+          nobound "tasty-quickcheck"
+      , generic-random =
+          nobound "generic-random"
+      , quickcheck-text =
+          nobound "quickcheck-text"
+      , hspec =
+          nobound "hspec"
+      , glob =
+          nobound "Glob"
       }
 
 in    prelude.defaults.Package
@@ -125,7 +145,7 @@ in    prelude.defaults.Package
       , author =
           "Valentin Reis"
       , build-type =
-          Some (types.BuildType.Simple {=})
+          Some types.BuildType.Simple
       , cabal-version =
           prelude.v "2.0"
       , category =
@@ -138,8 +158,6 @@ in    prelude.defaults.Package
                 →   prelude.defaults.Executable
                   ⫽ { main-is =
                         "Main.hs"
-                    , hs-source-dirs =
-                        [ "app" ]
                     , build-depends =
                         [ deps.base
                         , deps.bytestring
@@ -150,8 +168,10 @@ in    prelude.defaults.Package
                         , deps.protolude
                         , deps.editor-open
                         ]
+                    , hs-source-dirs =
+                        [ "app" ]
                     }
-                  ⫽ copts ([ "-threaded" ] : List Text)
+                  ⫽ copts [ "-threaded" ]
             , name =
                 "dhrun"
             }
@@ -159,7 +179,7 @@ in    prelude.defaults.Package
       , extra-source-files =
           [ "ChangeLog.md" ]
       , license =
-          types.License.MIT {=}
+          types.License.MIT
       , license-files =
           [ "LICENSE" ]
       , maintainer =
@@ -167,7 +187,7 @@ in    prelude.defaults.Package
       , source-repos =
           [   prelude.defaults.SourceRepo
             ⫽ { type =
-                  Some (types.RepoType.Git {=})
+                  Some types.RepoType.Git
               , location =
                   Some "https://xgitlab.mcs.anl.gov/vreis/dhrun"
               }
@@ -219,38 +239,33 @@ in    prelude.defaults.Package
                   λ(config : types.Config)
                 →   prelude.defaults.TestSuite
                   ⫽ { type =
-                        < exitcode-stdio =
-                            { main-is = "Tests.hs" }
-                        | detailed :
-                            { module : Text }
-                        >
+                        types.TestType.exitcode-stdio { main-is = "Tests.hs" }
                     , build-depends =
-                        nobounds
-                        [ "base"
-                        , "protolude"
-                        , "dhall"
-                        , "yaml"
-                        , "aeson"
-                        , "filepath"
-                        , "mtl"
-                        , "bytestring"
-                        , "text"
-                        , "unliftio"
-                        , "tasty"
-                        , "tasty-hunit"
-                        , "tasty-golden"
-                        , "tasty-hspec"
-                        , "tasty-quickcheck"
-                        , "generic-random"
-                        , "quickcheck-text"
-                        , "hspec"
-                        , "dhrun-lib"
-                        , "Glob"
+                        [ deps.base
+                        , deps.protolude
+                        , deps.dhall
+                        , deps.yaml
+                        , deps.aeson
+                        , deps.filepath
+                        , deps.mtl
+                        , deps.bytestring
+                        , deps.text
+                        , deps.unliftio
+                        , deps.tasty
+                        , deps.tasty-hunit
+                        , deps.tasty-golden
+                        , deps.tasty-hspec
+                        , deps.tasty-quickcheck
+                        , deps.generic-random
+                        , deps.quickcheck-text
+                        , deps.hspec
+                        , deps.dhrun-lib
+                        , deps.glob
                         ]
                     , hs-source-dirs =
                         [ "tests" ]
                     }
-                  ⫽ copts ([ "-threaded" ] : List Text)
+                  ⫽ copts [ "-threaded" ]
             }
           ]
       }
