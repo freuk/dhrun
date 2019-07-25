@@ -16,7 +16,7 @@ maintainer: fre@freux.fr
 author: Valentin Reis
 synopsis: Dhall/YAML configurable concurrent integration test executor.
 description:
-    `dhrun` starts a list of (Unix) processes, monitors the standard streams for patterns that should be expected or avoided, kills the processes when criteria are met and exits accordingly. It is configured using either [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/).
+    `dhrun` starts a list of (Unix) processes, monitors the standard streams for patterns that should be expected or avoided, kills the processes when criteria are met and exits accordingly. It is configured using either [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/). See the [README.md](https://github.com/freuk/dhrun) file for details.
 category: tools
 build-type: Simple
 extra-source-files:
