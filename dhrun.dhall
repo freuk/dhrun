@@ -141,7 +141,7 @@ in    prelude.defaults.Package
     ⫽ { name =
           "dhrun"
       , version =
-          prelude.v "1.0.0"
+          prelude.v "1.0.1"
       , author =
           "Valentin Reis"
       , build-type =
@@ -231,7 +231,7 @@ in    prelude.defaults.Package
             }
           ]
       , synopsis =
-          "`dhrun`: [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/) configurable concurrent process executor with streaming assertions."
+          "Dhall/YAML configurable concurrent integration test executor."
       , test-suites =
           [ { name =
                 "Tests"
