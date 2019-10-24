@@ -1,3 +1,5 @@
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffreuk%2Fdhrun.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffreuk%2Fdhrun?ref=badge_shield)
+
 ##### `dhrun`: [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/) configurable concurrent process executor with streaming assertions.
 
 `dhrun` starts a list of (Unix) processes, monitors the standard streams
@@ -131,3 +133,7 @@ here are the hackage dependencies for `dhrun` and its tests:
 
 -   [venom](https://github.com/ovh/venom)
 -   [tasty-program](http://hackage.haskell.org/package/tasty-program)
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ffreuk%2Fdhrun.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ffreuk%2Fdhrun?ref=badge_large)
