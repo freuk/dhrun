@@ -85,7 +85,8 @@ executable dhrun
         dhall -any,
         optparse-applicative -any,
         protolude -any,
-        editor-open -any
+        editor-open -any,
+        dhrun-lib -any
 
 test-suite Tests
     type: exitcode-stdio-1.0

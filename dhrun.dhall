@@ -1,6 +1,6 @@
-let prelude = ./dhall/dhall-to-cabal/prelude.dhall
+let prelude = ./nix/dhall2cabal/dhall-to-cabal/prelude.dhall
 
-let types = ./dhall/dhall-to-cabal/types.dhall
+let types = ./nix/dhall2cabal/dhall-to-cabal/types.dhall
 
 let defexts =
       [ types.Extension.LambdaCase True
@@ -161,6 +161,7 @@ in    prelude.defaults.Package
                         , deps.optparse-applicative
                         , deps.protolude
                         , deps.editor-open
+                        , nobound "dhrun-lib"
                         ]
                     , hs-source-dirs =
                         [ "app" ]

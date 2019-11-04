@@ -60,8 +60,9 @@ commonParser =
       ( strArgument
         ( metavar "INPUT" <>
           help
-            "Input configuration with .yml/.yaml/.dh/.dhall extension." <>
-          " Leave void for stdin (dhall) input."
+            ( "Input configuration with .yml/.yaml/.dh/.dhall extension." <>
+              " Leave void for stdin (dhall) input."
+            )
         )
       ) <*>
     flag

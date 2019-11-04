@@ -18,7 +18,7 @@ let
       export LOCALE_ARCHIVE=${pkgs.glibcLocales}/lib/locale/locale-archive
       export LANG=en_US.UTF-8
       cp ${dhallSpec} cabal.dhall
-      substituteInPlace cabal.dhall --replace "= ./dhall" "= ${./cabal2dhall}"
+      substituteInPlace dhrun.dhall --replace "= ./nix/dhall2cabal" "= ${./dhall2cabal}"
       GHCVERSION=$(${pkgs.haskellPackages.ghc}/bin/ghc --numeric-version)
       ${pkgs.haskellPackages.dhall-to-cabal}/bin/dhall-to-cabal <<< "./cabal.dhall" --output-stdout > $out
     '';
