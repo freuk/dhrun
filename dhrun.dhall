@@ -1,6 +1,6 @@
-let prelude = ./cabal/prelude.dhall
+let prelude = ./dhall/dhall-to-cabal/prelude.dhall
 
-let types = ./cabal/types.dhall
+let types = ./dhall/dhall-to-cabal/types.dhall
 
 let defexts =
       [ types.Extension.LambdaCase True
@@ -70,43 +70,43 @@ let deps =
       { dhrun-lib =
           nobound "dhrun-lib"
       , base =
-          genbounds "base" "4.11.1" "4.12"
+          nobound "base"
       , bytestring =
-          genbounds "bytestring" "0.10.8" "0.11"
+          nobound "bytestring"
       , containers =
-          genbounds "containers" "0.5.11" "0.6"
+          nobound "containers"
       , text =
-          genbounds "text" "1.2.3" "1.3"
+          nobound "text"
       , unix =
-          genbounds "unix" "2.7.2" "2.8"
+          nobound "unix"
       , time =
-          genbounds "time" "1.8.0" "1.9"
+          nobound "time"
       , ansi-terminal =
-          genbounds "ansi-terminal" "0.9.1" "0.10"
+          nobound "ansi-terminal"
       , conduit =
-          genbounds "conduit" "1.3.0" "1.4"
+          nobound "conduit"
       , directory =
-          genbounds "directory" "1.3.1" "1.4"
+          nobound "directory"
       , mtl =
-          genbounds "mtl" "2.2.2" "2.3"
+          nobound "mtl"
       , unliftio-core =
-          genbounds "unliftio-core" "0.1.2" "0.2"
+          nobound "unliftio-core"
       , conduit-extra =
-          genbounds "conduit-extra" "1.3.0" "1.4"
+          nobound "conduit-extra"
       , process =
-          genbounds "process" "1.6.3" "1.7"
+          nobound "process"
       , dhall =
-          genbounds "dhall" "1.24.0" "1.25"
+          nobound "dhall"
       , protolude =
-          genbounds "protolude" "0.2.2" "0.3"
+          nobound "protolude"
       , yaml =
-          genbounds "yaml" "0.8.32" "0.9"
+          nobound "yaml"
       , filepath =
-          genbounds "filepath" "1.4.2" "1.5"
+          nobound "filepath"
       , optparse-applicative =
-          genbounds "optparse-applicative" "0.15.0" "0.16"
+          nobound "optparse-applicative"
       , editor-open =
-          genbounds "editor-open" "0.6.0" "0.7"
+          nobound "editor-open"
       , tasty =
           nobound "tasty"
       , aeson =
@@ -195,6 +195,7 @@ in    prelude.defaults.Package
                         , deps.bytestring
                         , deps.containers
                         , deps.text
+                        , deps.aeson
                         , deps.unix
                         , deps.time
                         , deps.ansi-terminal
