@@ -22,29 +22,19 @@ import Control.Monad.Writer
   , runWriterT
   , tell
   )
-import Data.Conduit
-  ( ConduitT
-  )
+import Data.Conduit (ConduitT)
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.Process.Typed as PT
 import Data.Map as DM
-import qualified Data.Text as T
-  ( isInfixOf
-  )
+import qualified Data.Text as T (isInfixOf)
 import Dhrun.Conduit
 import Dhrun.Pure
 import Dhrun.Types.Cfg
 import Protolude
 import System.Console.ANSI
-import qualified System.Directory as SD
-  ( createDirectoryIfMissing
-  )
-import qualified System.Environment as SE
-  ( getEnvironment
-  )
-import System.Exit
-  ( ExitCode (..)
-  )
+import qualified System.Directory as SD (createDirectoryIfMissing, makeAbsolute)
+import qualified System.Environment as SE (getEnvironment)
+import System.Exit (ExitCode (..))
 import qualified System.IO as SIO
   ( BufferMode (NoBuffering)
   , IOMode (WriteMode)
@@ -192,18 +182,19 @@ runMultipleV getter desc =
 -- | Runs a single command. should be the only 'complex' function in this codebaseaside from runAsyncs. TODO: add the exitcode check functionality.
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
-  for_ otherwd $ \(WorkDir swd) -> SD.createDirectoryIfMissing True (toS swd)
-  fromMaybe (Timeout c) <$> maybeTimeout go timeout
+  realWD <- SD.makeAbsolute (toS wd)
+  let outFile :: FilePath
+      outFile = getWdFilename (toS realWD) out
+      errFile :: FilePath
+      errFile = getWdFilename (toS realWD) err
+  for_ otherwd $ \(WorkDir swd) -> do
+    realSWD <- SD.makeAbsolute (toS swd)
+    SD.createDirectoryIfMissing True (toS realSWD)
+  fromMaybe (Timeout c) <$> maybeTimeout (go realWD outFile errFile) timeout
   where
-    realwd = maybe (toS wd) toS otherwd
-    -- | output files
-    outFile :: FilePath
-    outFile = getWdFilename realwd out
-    errFile :: FilePath
-    errFile = getWdFilename realwd err
     -- | process configuration
-    pc :: PC
-    pc =
+    pc :: FilePath -> PC
+    pc realwd =
       PT.proc (toS name) (toS <$> args) &
         PT.setWorkingDir (toS realwd) &
         PT.setEnv
@@ -211,17 +202,17 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
             envVars
               vars
               passvars
-              (DM.toList $ DM.insert "PWD" wd (DM.fromList fullExternEnv))
+              (DM.toList $ DM.insert "PWD" (toS realwd) (DM.fromList fullExternEnv))
           ) &
         PT.setStdout PT.createSource &
         PT.setStderr PT.createSource &
         PT.setStdin PT.closed
     -- | lambda-scoped resource acquisition: stdin/out conduits and starting the process
-    go :: IO CmdResult
-    go =
+    go :: FilePath -> FilePath -> FilePath -> IO CmdResult
+    go realwd outFile errFile =
       with3 (withSinkFileNoBuffering outFile)
         (withSinkFileNoBuffering errFile)
-        (withWrappedSafeP c pc)
+        (withWrappedSafeP c (pc realwd))
         logic
     -- | the main logic, that uses two sinks and the started process to
     -- do the streaming monitoring.
