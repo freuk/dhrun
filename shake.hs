@@ -9,7 +9,7 @@ License     : MIT
 Maintainer  : fre@freux.fr
 -}
 import Control.Monad
-import Data.Text (dropEnd, splitOn, strip, lines)
+import Data.Text (dropEnd, lines, splitOn, strip)
 import Development.Shake hiding (getEnv)
 import Development.Shake.FilePath
 import Options.Applicative as OA
@@ -68,28 +68,13 @@ main = do
             (info (pure cabalstatic) (progDesc "generate cabal file for static build.")) <>
           OA.command "shake" (info (pure (runshake [])) (progDesc "run shake.")) <>
           OA.command
-            "build"
-            ( info (pure (runshake ["build"]))
-              (progDesc "run shake for cabal build.")
-            ) <>
-          OA.command
-            "pyclient"
-            ( info (pure (runshake ["pyclient"]))
+            "dhrun"
+            ( info (pure (runshake ["dhrun"]))
               (progDesc "run shake for cabal build.")
             ) <>
           OA.command
             "codegen"
             ( info (pure (runshake ["codegen"]))
-              (progDesc "run shake for cabal build.")
-            ) <>
-          OA.command
-            "doc"
-            ( info (pure (runshake ["doc"]))
-              (progDesc "run shake for cabal build.")
-            ) <>
-          OA.command
-            "client"
-            ( info (pure (runshake ["client"]))
               (progDesc "run shake for cabal build.")
             ) <>
           help "Type of operation to run."
@@ -118,17 +103,22 @@ cabalstatic = runProcess_ $ shell "dhall-to-cabal ./dev/pkgs/hsnrm/static.dhall 
 
 runshake as =
   withArgs as $ shakeArgs shakeOptions $ do
-    phony "pyclient" $ do
-      version <- liftIO $ toS . strip . toS <$> readProcessStdout_ "ghc --numeric-version"
-      ghcPathRaw <- liftIO $ strip . toS <$> readProcessStdout_ "which ghc"
-      let ghcPath = dropEnd 8 ghcPathRaw
+    phony "dhrun" $
       liftIO
         ( runProcess_ $
           proc "cabal"
             [ "v2-build"
-            , "pynrm.so"
-            , "--ghc-option=-lHSrts_thr-ghc" <> version
-            , "--ghc-option=-L" <> toS ghcPath <> "/lib/ghc-" <> version <> "/rts/"
+            , "dhrun"
+            , "--builddir=.build"
+            , "--jobs=4"
+            ]
+        )
+    phony "codegen" $
+      liftIO
+        ( runProcess_ $
+          proc "cabal"
+            [ "v2-build"
+            , "codegen"
             , "--builddir=.build"
             , "--jobs=4"
             ]

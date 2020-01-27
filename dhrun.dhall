@@ -4,11 +4,38 @@ let types = ./nix/dhall2cabal/dhall-to-cabal/types.dhall
 
 let defexts =
       [ types.Extension.LambdaCase True
+      , types.Extension.QuasiQuotes True
+      , types.Extension.DefaultSignatures True
+      , types.Extension.ExistentialQuantification True
       , types.Extension.RecordWildCards True
-      , types.Extension.ScopedTypeVariables True
+      , types.Extension.TypeSynonymInstances True
+      , types.Extension.StandaloneDeriving True
+      , types.Extension.FlexibleInstances True
+      , types.Extension.TupleSections True
+      , types.Extension.MultiParamTypeClasses True
       , types.Extension.ImplicitPrelude False
       , types.Extension.OverloadedStrings True
       , types.Extension.ViewPatterns True
+      , types.Extension.DeriveFunctor True
+      , types.Extension.DeriveTraversable True
+      , types.Extension.TypeFamilies True
+      , types.Extension.DeriveAnyClass True
+      , types.Extension.DeriveGeneric True
+      , types.Extension.DeriveDataTypeable True
+      , types.Extension.DeriveFoldable True
+      , types.Extension.DerivingStrategies True
+      , types.Extension.TypeApplications True
+      , types.Extension.MultiWayIf True
+      , types.Extension.TemplateHaskell False
+      , types.Extension.BlockArguments True
+      , types.Extension.GADTs True
+      , types.Extension.FlexibleContexts True
+      , types.Extension.TypeOperators True
+      , types.Extension.DataKinds True
+      , types.Extension.PolyKinds True
+      , types.Extension.AllowAmbiguousTypes True
+      , types.Extension.FunctionalDependencies True
+      , types.Extension.UndecidableInstances True
       ]
 
 let deflang = Some types.Language.Haskell2010
@@ -87,6 +114,10 @@ let deps =
           nobound "conduit"
       , directory =
           nobound "directory"
+      , aeson-extra =
+          nobound "aeson-extra"
+      , aeson-pretty =
+          nobound "aeson-pretty"
       , mtl =
           nobound "mtl"
       , unliftio-core =
@@ -101,18 +132,26 @@ let deps =
           nobound "protolude"
       , yaml =
           nobound "yaml"
+      , neat-interpolation =
+          nobound "neat-interpolation"
       , filepath =
           nobound "filepath"
       , optparse-applicative =
           nobound "optparse-applicative"
       , editor-open =
           nobound "editor-open"
+      , dhall-json =
+          nobound "dhall-json"
+      , data-default =
+          nobound "data-default"
       , tasty =
           nobound "tasty"
       , aeson =
           nobound "aeson"
       , unliftio =
           nobound "unliftio"
+      , prettyprinter =
+          nobound "prettyprinter"
       , tasty-hunit =
           nobound "tasty-hunit"
       , tasty-golden =
@@ -151,24 +190,29 @@ in    prelude.defaults.Package
                   λ(config : types.Config)
                 →   prelude.defaults.Executable
                   ⫽ { main-is =
-                        "Main.hs"
+                        "Dhrun.hs"
                     , build-depends =
-                        [ deps.base
-                        , deps.bytestring
-                        , deps.directory
-                        , deps.filepath
-                        , deps.dhall
-                        , deps.optparse-applicative
-                        , deps.protolude
-                        , deps.editor-open
-                        , nobound "dhrun-lib"
-                        ]
+                        [ nobound "dhrun-lib", deps.protolude ]
                     , hs-source-dirs =
-                        [ "app" ]
+                        [ "bin" ]
                     }
                   ⫽ copts [ "-threaded" ]
             , name =
                 "dhrun"
+            }
+          , { executable =
+                  λ(config : types.Config)
+                →   prelude.defaults.Executable
+                  ⫽ { main-is =
+                        "Codegen.hs"
+                    , build-depends =
+                        [ nobound "dhrun-lib", deps.protolude ]
+                    , hs-source-dirs =
+                        [ "bin" ]
+                    }
+                  ⫽ copts ([] : List Text)
+            , name =
+                "codegen"
             }
           ]
       , extra-source-files =
@@ -194,31 +238,38 @@ in    prelude.defaults.Package
                   ⫽ { build-depends =
                         [ deps.base
                         , deps.bytestring
+                        , deps.directory
+                        , deps.filepath
+                        , deps.dhall-json
+                        , deps.dhall
+                        , deps.data-default
+                        , deps.optparse-applicative
+                        , deps.protolude
                         , deps.containers
                         , deps.text
+                        , deps.aeson-pretty
                         , deps.aeson
+                        , deps.aeson-extra
                         , deps.unix
                         , deps.time
                         , deps.ansi-terminal
+                        , deps.prettyprinter
                         , deps.conduit
-                        , deps.directory
                         , deps.mtl
+                        , deps.neat-interpolation
                         , deps.unliftio-core
                         , deps.conduit-extra
                         , deps.process
-                        , deps.dhall
-                        , deps.protolude
                         , deps.yaml
                         ]
                     , hs-source-dirs =
                         [ "src" ]
                     , exposed-modules =
                         [ "Dhrun.Types.Cfg"
-                        , "Dhrun.Types.Dhall"
-                        , "Dhrun.Types.Yaml"
                         , "Dhrun.Run"
                         , "Dhrun.Pure"
                         , "Dhrun.Conduit"
+                        , "Dhrun.Bin"
                         ]
                     }
                   ⫽ copts ([] : List Text)
@@ -247,6 +298,8 @@ in    prelude.defaults.Package
                         , deps.bytestring
                         , deps.text
                         , deps.unliftio
+                        , deps.aeson-extra
+                        , deps.data-default
                         , deps.tasty
                         , deps.tasty-hunit
                         , deps.tasty-golden

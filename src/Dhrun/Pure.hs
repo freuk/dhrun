@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-|
 Module      : Dhrun.Run
@@ -75,20 +74,20 @@ concludeCmd True (DiedLegal _) = Right "All commands exited successfully."
 concludeCmd False (DiedLegal c) =
   Left
     [ "command exited:" <>
-        mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
+        mconcat (intersperse "\n" (T.lines (show c)))
     ]
 concludeCmd _ (Timeout c) =
-  Left $ "The following command timed out:" : T.lines (toS $ encodeCmd c)
+  Left $ "The following command timed out:" : T.lines (show c)
 concludeCmd _ (DiedFailure c n) =
   Left $
     "The following command died with exit code " <>
     show n <>
     " :" :
-    T.lines (toS $ encodeCmd c)
+    T.lines (show c)
 concludeCmd _ (FoundAll c) =
   Right
     ( "All searched patterns in the following command were found. Killing all processes.\n " <>
-      mconcat (intersperse "\n" (T.lines (toS $ encodeCmd c)))
+      mconcat (intersperse "\n" (T.lines (show c)))
     )
 concludeCmd _ (FoundIllegal c t e) =
   Left $
@@ -97,27 +96,27 @@ concludeCmd _ (FoundIllegal c t e) =
     " was found in the output of this process' " <>
     stdToS e <>
     ":" :
-    T.lines (toS $ encodeCmd c)
+    T.lines (show c)
 concludeCmd _ (OutputLacking c e) =
   Left $
     "This process' " <>
     stdToS e <>
     " was found to be lacking pattern(s):" :
-    T.lines (toS $ encodeCmd c)
+    T.lines (show c)
 concludeCmd _ (ConduitException c e) =
   Left $ "This process ended with a conduit exception:" <> stdToS e :
     T.lines
-      (toS $ encodeCmd c)
+      (show c)
 concludeCmd _ (ThrewException c e) =
   Left $ "This process' execution ended with an exception: " <> e :
     T.lines
-      (toS $ encodeCmd c)
+      (show c)
 concludeCmd _ (DiedUnExpected c n) =
   Left $ "process exited with inadequate exit code " <> show n <> ": " :
     T.lines
-      (toS $ encodeCmd c)
+      (show c)
 concludeCmd _ (DiedExpected c) =
-  Right $ "process exited with adequate exit code " <> ": " <> toS (encodeCmd c)
+  Right $ "process exited with adequate exit code " <> ": " <> show c
 
 stdToS :: Std -> Text
 stdToS Out = "stdout"

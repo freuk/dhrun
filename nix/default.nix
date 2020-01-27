@@ -4,9 +4,7 @@
 
 , fetched ? s: (pkgs.nix-update-source.fetch s).src
 
-, dhrun-src ? ../.
-
-}:
+, dhrun-src ? ../. }:
 
 let
   panhandle-src = fetched panhandle/pin.json;
@@ -18,7 +16,9 @@ let
       export LOCALE_ARCHIVE=${pkgs.glibcLocales}/lib/locale/locale-archive
       export LANG=en_US.UTF-8
       cp ${dhallSpec} cabal.dhall
-      substituteInPlace cabal.dhall --replace "= ./nix/dhall2cabal" "= ${./dhall2cabal}"
+      substituteInPlace cabal.dhall --replace "= ./nix/dhall2cabal" "= ${
+        ./dhall2cabal
+      }"
       GHCVERSION=$(${pkgs.haskellPackages.ghc}/bin/ghc --numeric-version)
       ${pkgs.haskellPackages.dhall-to-cabal}/bin/dhall-to-cabal <<< "./cabal.dhall" --output-stdout > $out
     '';
@@ -28,7 +28,7 @@ let
       mkdir -p $out
       cp -r ${source}/ $out
       chmod -R +rw $out
-      cp ${cabalFile dhallFile} $out/hsnrm.cabal
+      cp ${cabalFile dhallFile} $out/dhrun.cabal
     '';
 
   hack = pkgs.haskellPackages.shellFor {
@@ -39,6 +39,9 @@ let
     withHoogle = true;
     buildInputs = [ pkgs.git pkgs.hwloc pkgs.htop pkgs.jq ];
     CABALFILE = cabalFile ../dhrun.dhall;
+    shellHook = ''
+      cp $CABALFILE dhrun.cabal
+      '';
   };
 
   dhrunpkgs = rec {
@@ -50,6 +53,10 @@ let
           panpipe = doJailbreak super.panpipe;
           panhandle = (self.callCabal2nix "panhandle"
             (builtins.fetchGit { inherit (panhandle-src) url rev; })) { };
+          dhall = super.dhall_1_24_0;
+          dhall-json =
+            (self.callCabal2nix "dhall-json" ../dhall-haskell/dhall-json
+              { }).overrideAttrs (o: { doCheck = false; });
         };
     };
     pkgsHaskellPackages = pkgs.haskellPackages.override {
@@ -57,6 +64,10 @@ let
         with pkgs.haskell.lib; rec {
           dhrun = (self.callCabal2nix "dhrun"
             (patchedSrc (lib.filter dhrun-src) ../dhrun.dhall)) { };
+          dhall = super.dhall_1_24_0;
+          dhall-json =
+            (self.callCabal2nix "dhall-json" ../dhall-haskell/dhall-json
+              { }).overrideAttrs (o: { doCheck = false; });
         };
     };
     dhrun = pkgsHaskellPackages.dhrun.overrideAttrs (old: {
