@@ -10,6 +10,8 @@ Maintainer  : fre@freux.fr
 module Dhrun.Bin
   ( cli
   , codegen
+  , SourceType(..)
+  , processType
   )
 where
 
@@ -47,7 +49,8 @@ cli =
 codegen :: IO ()
 codegen = do
   valueToDir "defaults/" "Cfg" (def :: Cfg)
-  for_ examples $ uncurry (valueToDir "examples/")
+  for_ (successes examples) $ uncurry (valueToDir "examples-successes/")
+  for_ (failures examples) $ uncurry (valueToDir "examples-failures/")
   typeToDir "types/" "Cfg" $
     Dhall.absurd <$>
     Dhall.expected

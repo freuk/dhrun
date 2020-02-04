@@ -26,6 +26,7 @@ module Dhrun.Types.Cfg
   , Arg (..)
   , Pattern (..)
   , examples
+  , Examples (..)
   )
 where
 
@@ -198,44 +199,52 @@ instance Interpret Int where
 
   autoWith _ = fmap fromInteger integer
 
-examples :: [(Text, Cfg)]
-examples =
-  [ ( "success-exit1"
-    , defV {cmds = [exitWithCode 1]}
-    )
-  , ( "success-exit5"
-    , defV {cmds = [exitWithCode 5]}
-    )
-  , ( "success-echo"
-    , defV {cmds = [echo "arbitrary-character-string"]}
-    )
-  , ( "failure-pattern-miss"
-    , defV
-      { cmds = [ emptyCmd
-                   { out = (out emptyCmd)
-                       { filecheck = Check
-                           { avoids = []
-                           , wants = ["something that isn't there"]
-                           }
-                       }
-                   }
-               ]
+data Examples
+  = Examples
+      { successes :: [(Text, Cfg)]
+      , failures :: [(Text, Cfg)]
       }
-    )
-  , ( "failure-pattern-avoid"
-    , defV
-      { cmds = [ (echo "toavoid")
-                   { out = (out emptyCmd)
-                       { filecheck = Check
-                           { avoids = []
-                           , wants = ["something that isn't there"]
-                           }
-                       }
+
+examples :: Examples
+examples = Examples
+  { successes = [ ( "success-exit1"
+                  , defV {cmds = [exitWithCode 1]}
+                  )
+                , ( "success-exit5"
+                  , defV {cmds = [exitWithCode 5]}
+                  )
+                , ( "success-echo"
+                  , defV {cmds = [echo "arbitrary-character-string"]}
+                  )
+                ]
+  , failures = [ ( "failure-pattern-miss"
+                 , defV
+                   { cmds = [ emptyCmd
+                                { out = (out emptyCmd)
+                                    { filecheck = Check
+                                        { avoids = []
+                                        , wants = ["something that isn't there"]
+                                        }
+                                    }
+                                }
+                            ]
                    }
+                 )
+               , ( "failure-pattern-avoid"
+                 , defV
+                   { cmds = [ (echo "toavoid")
+                                { out = (out emptyCmd)
+                                    { filecheck = Check
+                                        { avoids = []
+                                        , wants = ["something that isn't there"]
+                                        }
+                                    }
+                                }
+                            ]
+                   }
+                 )
                ]
-      }
-    )
-  ]
+  }
   where
     defV = def {verbosity = Verbose}
     exitWithCode i =

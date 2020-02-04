@@ -184,7 +184,7 @@ in    prelude.defaults.Package
       , category =
           "tools"
       , description =
-          "`dhrun` starts a list of (Unix) processes, monitors the standard streams for patterns that should be expected or avoided, kills the processes when criteria are met and exits accordingly. It is configured using either [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/). See the [README.md](https://github.com/freuk/dhrun) file for details."
+          "`dhrun` starts a list of (Unix) processes, monitors the standard streams for patterns that should be expected or avoided, kills the processes when criteria are met and exits accordingly. It is configured using either [Dhall](https://dhall-lang.org/),YAML or JSON. See the [README.md](https://github.com/freuk/dhrun) file for details."
       , executables =
           [ { executable =
                   λ(config : types.Config)

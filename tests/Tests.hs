@@ -11,13 +11,9 @@ module Main
   )
 where
 
-{-import           Test.Tasty.Hspec-}
-
-{-import qualified Data.Text                     as T-}
-{-import           Data.Text.Arbitrary-}
-{-import           Control.Monad.Mock-}
-{-import           Control.Monad.Mock.TH-}
 import Data.Text.Arbitrary
+import Dhrun.Bin
+import Dhrun.Run
 import Dhrun.Pure
 import Dhrun.Types.Cfg
 import Generic.Random
@@ -84,24 +80,49 @@ instance Arbitrary CmdResult where
 
   arbitrary = genericArbitraryU
 
-goldenYml :: FilePath -> TestTree
-goldenYml fn =
+testExample :: (Text, Cfg) -> TestTree
+testExample (name, cfg) =
+  testCase (toS name) (runDhrun cfg)
+
+goldenLoad :: FilePath -> TestTree
+goldenLoad fn =
   testCase
     (toS fn)
     ( do
-      ymlCfg <- decodeCfgFile (toS $ fn <.> ".yml")
-      dhCfg <- inputCfg (toS $ "./" <> fn <.> "dh")
-      assertEqual "files not equal" ymlCfg dhCfg
+      yamlCfg <-
+        processType (Proxy :: Proxy Cfg) Yaml =<<
+          (toS <$> readFile (toS $ "./" <> fn <.> "yaml"))
+      jsonCfg <-
+        processType (Proxy :: Proxy Cfg) Json =<<
+          (toS <$> readFile (toS $ "./" <> fn <.> "json"))
+      dhCfg <-
+        processType (Proxy :: Proxy Cfg) Dhall =<<
+          (toS <$> readFile (toS $ "./" <> fn <.> "dhall"))
+      assertEqual "yaml/dhall do not result in equal Cfg" yamlCfg dhCfg
+      assertEqual "json/dhall do not result in equal cfg" jsonCfg dhCfg
     )
 
 main :: IO ()
 main = do
-  goldenTests <-
-    testGroup "Golden tests" <$>
-      ( findByExtension [".yml"] "examples" <&>
-        fmap (goldenYml . toS . dropExtension)
+  goldenTestsSuccess <-
+    testGroup "Golden tests for success files" <$>
+      ( findByExtension [".yaml"] "resources/examples-successes" <&>
+        fmap (goldenLoad . toS . dropExtension)
       )
-  defaultMain $ testGroup "Tests" [unitTests, goldenTests, qcProps]
+  goldenTestsFailure <-
+    testGroup "Golden tests for failure files" <$>
+      ( findByExtension [".yaml"] "resources/examples-failures" <&>
+        fmap (goldenLoad . toS . dropExtension)
+      )
+  let tf = testGroup "failures" (testExample <$> (successes examples))
+  defaultMain $
+    testGroup "Tests"
+      [ unitTests
+      , goldenTestsSuccess
+      , goldenTestsFailure
+      , qcProps
+      ,tf
+      ]
 
 unitTests :: TestTree
 unitTests =
