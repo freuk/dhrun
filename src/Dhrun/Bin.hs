@@ -46,15 +46,37 @@ cli =
 
 codegen :: IO ()
 codegen = do
-  Dhall.load (Lint.lint $ Dhall.absurd <$> Dhall.embed (Dhall.injectWith Dhall.defaultInterpretOptions) (def :: Cfg)) >>=
-    exprToDir "defaults/" "Cfg"
+  valueToDir "defaults/" "Cfg" (def :: Cfg)
+  for_ examples $ uncurry (valueToDir "examples/")
+  typeToDir "types/" "Cfg" $
+    Dhall.absurd <$>
+    Dhall.expected
+      (Dhall.auto :: Dhall.Type Cfg)
   where
+    valueToDir dir name v =
+      exprToDir dir name =<<
+        ( Dhall.load .
+          Lint.lint $
+          Dhall.absurd <$>
+          Dhall.embed
+            (Dhall.injectWith Dhall.defaultInterpretOptions)
+            v
+        )
+    typeToDir :: Text -> Text -> Dhall.Expr Dhall.Src Dhall.X -> IO ()
+    typeToDir dir defName expr = do
+      let dest = resourcePath dir defName ".dhall"
+      createDirectoryIfMissing True (takeDirectory $ toS dest)
+      putText $ "  Writing type for " <> defName <> " to " <> dest <> "."
+      writeOutput
+        licenseDhall
+        (toS dest)
+        expr
     exprToDir dir defName expr = do
       let (dest, destJ, destY) = mkPaths dir defName
       DJ.dhallToJSON expr & \case
         Left e -> die $ "horrible internal dhall error: " <> show e
         Right jsonValue -> do
-          putText $ "  Writing default for " <> defName <> " to " <> dest <> "."
+          putText $ "  Writing value for " <> defName <> " to " <> dest <> "."
           createDirectoryIfMissing True (takeDirectory $ toS dest)
           writeOutput
             licenseDhall
@@ -62,7 +84,7 @@ codegen = do
             expr
           writeFile (toS destJ) $ toS (AP.encodePretty jsonValue)
           writeFile (toS destY) $ licenseYaml <> toS (Y.encode jsonValue)
-    resourcePath dir defName x = "./resources" <> dir <> defName <> x
+    resourcePath dir defName x = "./resources/" <> dir <> defName <> x
     mkPaths :: Text -> Text -> (Text, Text, Text)
     mkPaths dir defName =
       ( resourcePath dir defName ".dhall"
@@ -111,7 +133,7 @@ ext :: Bool -> SourceType -> Maybe Text -> FinallySource
 ext _ _ (Just fn)
   | xt `elem` [".dh", ".dhall"] = FinallyFile Dhall fn
   | xt `elem` [".yml", ".yaml"] = FinallyFile Yaml fn
-  | xt `elem` [".json"] = FinallyFile Json fn
+  | xt == ".json" = FinallyFile Json fn
   | otherwise = NoExt
   where
     xt = takeExtension $ toS fn
@@ -134,7 +156,7 @@ load MainCfg {..} =
 
 processType
   :: (Default x, Dhall.Interpret x, Dhall.Inject x)
-  => (Proxy x)
+  => Proxy x
   -> SourceType
   -> ByteString
   -> IO x
@@ -143,22 +165,22 @@ processType proxy@(Proxy :: Proxy x) sourceType bs =
 
 toExpr
   :: (Dhall.Inject x, Dhall.Interpret x, Default x)
-  => (Proxy x)
+  => Proxy x
   -> SourceType
   -> ByteString
   -> IO (Dhall.Expr Dhall.Src Dhall.X)
-toExpr _proxy (Dhall) s = Dhall.inputExpr $ toS s
-toExpr proxy (Yaml) s = sourceValueToExpr proxy $ Y.decodeEither' s
-toExpr proxy (Json) s = sourceValueToExpr proxy $ J.eitherDecode' (toS s)
+toExpr _proxy Dhall s = Dhall.inputExpr $ toS s
+toExpr proxy Yaml s = sourceValueToExpr proxy $ Y.decodeEither' s
+toExpr proxy Json s = sourceValueToExpr proxy $ J.eitherDecode' (toS s)
 
 sourceValueToExpr
   :: (Default x, Dhall.Interpret x, Dhall.Inject x)
-  => (Proxy x)
+  => Proxy x
   -> Either e Y.Value
   -> IO (Dhall.Expr Dhall.Src Dhall.X)
 sourceValueToExpr (Proxy :: Proxy x) = \case
   Left _ -> die "yaml parsing exception"
-  Right v -> do
+  Right v ->
     DJ.dhallToJSON exprValue & \case
       Left e -> die $ "horrible internal dhall error in cli parsing: " <> show e
       Right jsonValue ->

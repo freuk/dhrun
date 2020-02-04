@@ -1,0 +1,39 @@
+{
+    "pre": [],
+    "post": [],
+    "verbosity": "Verbose",
+    "cmds": [
+        {
+            "otherwd": null,
+            "args": [
+                "arbitrary-character-string"
+            ],
+            "postchecks": [],
+            "passvars": [
+                "PATH"
+            ],
+            "name": "echo",
+            "err": {
+                "filecheck": {
+                    "wants": [],
+                    "avoids": []
+                },
+                "filename": "touch.err"
+            },
+            "exitcode": "ExitSuccess",
+            "timeout": null,
+            "vars": [],
+            "out": {
+                "filecheck": {
+                    "wants": [
+                        "arbitrary-character-string"
+                    ],
+                    "avoids": []
+                },
+                "filename": "touch.out"
+            }
+        }
+    ],
+    "cleaning": "Keep",
+    "workdir": "./"
+}

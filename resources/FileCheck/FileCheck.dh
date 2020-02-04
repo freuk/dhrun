@@ -1,5 +1,0 @@
-let Check = ./../Check/Check.dh
-
-let FileCheck = { filename : Text, filecheck : Check }
-
-in  FileCheck

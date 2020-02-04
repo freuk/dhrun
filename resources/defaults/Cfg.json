@@ -1,0 +1,8 @@
+{
+    "pre": [],
+    "post": [],
+    "verbosity": "Normal",
+    "cmds": [],
+    "cleaning": "Keep",
+    "workdir": "./"
+}

@@ -1,5 +1,7 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-|
 Module      : Dhrun.Types.Cfg
@@ -23,6 +25,7 @@ module Dhrun.Types.Cfg
   , CommandName (..)
   , Arg (..)
   , Pattern (..)
+  , examples
   )
 where
 
@@ -32,7 +35,8 @@ import Protolude
 import qualified Prelude (String)
 
 newtype Arg = Arg Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv Arg Text where
 
@@ -43,7 +47,8 @@ instance StringConv Arg Prelude.String where
   strConv _ (Arg x) = toS x
 
 newtype CommandName = CommandName Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv CommandName Text where
 
@@ -54,7 +59,8 @@ instance StringConv CommandName FilePath where
   strConv _ (CommandName x) = toS x
 
 newtype Pattern = Pattern Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject, IsString) via Text
 
 instance StringConv Pattern ByteString where
 
@@ -65,7 +71,8 @@ instance StringConv Pattern Text where
   strConv _ (Pattern x) = toS x
 
 newtype FileName = FileName Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv FileName Text where
 
@@ -76,35 +83,40 @@ instance StringConv FileName FilePath where
   strConv _ (FileName x) = toS x
 
 newtype VarName = VarName Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv VarName Text where
 
   strConv _ (VarName x) = toS x
 
 newtype VarValue = VarValue Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv VarValue Text where
 
   strConv _ (VarValue x) = toS x
 
 newtype Pre = Pre Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv Pre Text where
 
   strConv _ (Pre x) = toS x
 
 newtype Post = Post Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv Post Text where
 
   strConv _ (Post x) = toS x
 
 newtype WorkDir = WorkDir Text
-  deriving (Eq, Show, Generic, Interpret, Inject)
+  deriving (Eq, Show, Generic)
+  deriving (Interpret, Inject) via Text
 
 instance StringConv WorkDir Text where
 
@@ -185,3 +197,80 @@ instance Default Cfg where
 instance Interpret Int where
 
   autoWith _ = fmap fromInteger integer
+
+examples :: [(Text, Cfg)]
+examples =
+  [ ( "success-exit1"
+    , defV {cmds = [exitWithCode 1]}
+    )
+  , ( "success-exit5"
+    , defV {cmds = [exitWithCode 5]}
+    )
+  , ( "success-echo"
+    , defV {cmds = [echo "arbitrary-character-string"]}
+    )
+  , ( "failure-pattern-miss"
+    , defV
+      { cmds = [ emptyCmd
+                   { out = (out emptyCmd)
+                       { filecheck = Check
+                           { avoids = []
+                           , wants = ["something that isn't there"]
+                           }
+                       }
+                   }
+               ]
+      }
+    )
+  , ( "failure-pattern-avoid"
+    , defV
+      { cmds = [ (echo "toavoid")
+                   { out = (out emptyCmd)
+                       { filecheck = Check
+                           { avoids = []
+                           , wants = ["something that isn't there"]
+                           }
+                       }
+                   }
+               ]
+      }
+    )
+  ]
+  where
+    defV = def {verbosity = Verbose}
+    exitWithCode i =
+      emptyCmd
+        { name = CommandName "bash"
+        , args = [Arg "-c", Arg "exit 5"]
+        , exitcode = Just (ExitFailure i)
+        }
+    echo f =
+      emptyCmd
+        { name = CommandName "echo"
+        , args = [Arg f]
+        , out = (out emptyCmd)
+          { filecheck = Check
+              { avoids = []
+              , wants = [Pattern f]
+              }
+          }
+        }
+    emptyCheck fn = FileCheck
+      { filename = FileName fn
+      , filecheck = Check
+        { avoids = []
+        , wants = []
+        }
+      }
+    emptyCmd = Cmd
+      { name = CommandName "echo"
+      , args = []
+      , exitcode = Just ExitSuccess
+      , vars = []
+      , err = emptyCheck "err.err"
+      , out = emptyCheck "out.out"
+      , passvars = [VarName "PATH"]
+      , postchecks = []
+      , timeout = Nothing
+      , otherwd = Nothing
+      }

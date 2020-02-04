@@ -1,2 +1,0 @@
-let EnvVar = ./EnvVar.dh
-in [] : List EnvVar

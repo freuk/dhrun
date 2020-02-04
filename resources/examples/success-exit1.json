@@ -1,0 +1,40 @@
+{
+    "pre": [],
+    "post": [],
+    "verbosity": "Verbose",
+    "cmds": [
+        {
+            "otherwd": null,
+            "args": [
+                "-c",
+                "exit 5"
+            ],
+            "postchecks": [],
+            "passvars": [
+                "PATH"
+            ],
+            "name": "bash",
+            "err": {
+                "filecheck": {
+                    "wants": [],
+                    "avoids": []
+                },
+                "filename": "err.err"
+            },
+            "exitcode": {
+                "_1": 1
+            },
+            "timeout": null,
+            "vars": [],
+            "out": {
+                "filecheck": {
+                    "wants": [],
+                    "avoids": []
+                },
+                "filename": "out.out"
+            }
+        }
+    ],
+    "cleaning": "Keep",
+    "workdir": "./"
+}

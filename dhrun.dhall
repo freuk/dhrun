@@ -215,8 +215,6 @@ in    prelude.defaults.Package
                 "codegen"
             }
           ]
-      , extra-source-files =
-          [ "ChangeLog.md" ]
       , license =
           types.License.MIT
       , license-files =

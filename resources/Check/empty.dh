@@ -1,1 +1,0 @@
-{ avoids = [] : List Text, wants = [] : List Text }

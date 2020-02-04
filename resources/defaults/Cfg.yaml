@@ -1,0 +1,15 @@
+# ******************************************************************************
+#  Copyright 2020 Valentin Reis.
+#  (c.f. AUTHORS, LICENSE)
+#
+#  SPDX-License-Identifier: MIT
+# ******************************************************************************
+#
+#     this file is generated, modifications will be erased.
+#
+pre: []
+post: []
+verbosity: Normal
+cmds: []
+cleaning: Keep
+workdir: ./

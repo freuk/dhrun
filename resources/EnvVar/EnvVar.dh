@@ -1,1 +1,0 @@
-let EnvVar = { varname : Text, value : Text } in EnvVar

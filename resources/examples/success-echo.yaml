@@ -1,0 +1,36 @@
+# ******************************************************************************
+#  Copyright 2020 Valentin Reis.
+#  (c.f. AUTHORS, LICENSE)
+#
+#  SPDX-License-Identifier: MIT
+# ******************************************************************************
+#
+#     this file is generated, modifications will be erased.
+#
+pre: []
+post: []
+verbosity: Verbose
+cmds:
+- otherwd: null
+  args:
+  - arbitrary-character-string
+  postchecks: []
+  passvars:
+  - PATH
+  name: echo
+  err:
+    filecheck:
+      wants: []
+      avoids: []
+    filename: err.err
+  exitcode: ExitSuccess
+  timeout: null
+  vars: []
+  out:
+    filecheck:
+      wants:
+      - arbitrary-character-string
+      avoids: []
+    filename: out.out
+cleaning: Keep
+workdir: ./
