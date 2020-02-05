@@ -17,10 +17,9 @@ dhrun run path/to/config.dhall
 dhrun run path/to/config.yaml
 ```
 
-See file [quickstart.yml](./quickstart.yml) for an overview of `dhrun`'s
-capabilities. The [resources](./resources) directory contains the Dhall
-types for the configuration layer, and the [examples](./examples/)
-directory contains more `.yml` and `.dh` configurations.
+ The [resources](./resources) directory contains the Dhall types for the
+ configuration layer, and the [examples](./examples/) directory contains more
+ `.yml` and `.dh` configurations.
 
 The originally intended workflow is to configure dhrun using a dhall
 codebase. In bash, this might involve a here-document:

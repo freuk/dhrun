@@ -71,7 +71,7 @@ data Std = Out | Err
 -- there were any "wants" in the template.
 concludeCmd :: CmdResult -> Either [Text] Text
 concludeCmd (DiedLegal c) =
-  Right $ 
+  Right $
     "command exited:" <>
     mconcat (intersperse "\n" (T.lines (show c)))
 concludeCmd (Timeout c) =
@@ -152,22 +152,21 @@ finalizeCmd
   -> ProcessWas
   -> CmdResult
 finalizeCmd c _ (Died ec) = case exitcode c of
-  Nothing -> trace ("toto" <> show c :: Text) $ DiedLegal c
+  Nothing -> DiedLegal c
   Just ecExpect ->
     if ecExpect == ec
     then DiedExpected c
     else DiedUnExpected c ec
 finalizeCmd c ei Killed = rightFinalizer ei
   where
-    rightFinalizer (Left (Right ())) = legalOrLacking Out
-    rightFinalizer (Right (Right ())) = legalOrLacking Err
+    rightFinalizer (Left (Right ())) = DiedLegal c
+    rightFinalizer (Right (Right ())) = DiedLegal c
     rightFinalizer (Left (Left e)) = unpackE e Out
     rightFinalizer (Right (Left e)) = unpackE e Err
     unpackE e r = case fromException e of
       Just (ThrowFoundAnAvoid t) -> FoundIllegal c t r
       Just ThrowFoundAllWants -> FoundAll c
       Nothing -> ConduitException c r
-    legalOrLacking r = DiedLegal c
 
 with3
   :: ((t1 -> t2) -> t3)

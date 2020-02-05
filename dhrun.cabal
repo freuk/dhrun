@@ -64,6 +64,8 @@ library dhrun-lib
         text -any,
         aeson-pretty -any,
         aeson -any,
+        lens -any,
+        generic-lens -any,
         aeson-extra -any,
         unix -any,
         time -any,

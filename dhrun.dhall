@@ -106,6 +106,10 @@ let deps =
           nobound "text"
       , unix =
           nobound "unix"
+      , lens =
+          nobound "lens"
+      , generic-lens =
+          nobound "generic-lens"
       , time =
           nobound "time"
       , ansi-terminal =
@@ -247,6 +251,8 @@ in    prelude.defaults.Package
                         , deps.text
                         , deps.aeson-pretty
                         , deps.aeson
+                        , deps.lens
+                        , deps.generic-lens
                         , deps.aeson-extra
                         , deps.unix
                         , deps.time

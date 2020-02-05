@@ -30,8 +30,10 @@ module Dhrun.Types.Cfg
   )
 where
 
+import Control.Lens
 import Data.Default
-import Dhall
+import Data.Generics.Product
+import Dhall hiding (field)
 import Protolude
 import qualified Prelude (String)
 
@@ -208,36 +210,36 @@ data Examples
 examples :: Examples
 examples = Examples
   { successes = [ ( "success-exit1"
-                  , defV {cmds = [exitWithCode 1]}
+                  , defV & field @"cmds" .~ [exitWithCode 1]
                   )
                 , ( "success-exit5"
-                  , defV {cmds = [exitWithCode 5]}
+                  , defV & field @"cmds" .~ [exitWithCode 5]
                   )
                 , ( "success-echo"
-                  , defV {cmds = [echo "arbitrary-character-string"]}
+                  , defV & field @"cmds" .~
+                    [echo "arbitrary-character-string"]
                   )
                 ]
   , failures = [ ( "failure-pattern-miss"
-                 , defV
-                   { cmds = [ emptyCmd
-                                { postchecks = [ FileCheck
-                                                   { filename = (filename $ out emptyCmd)
-                                                   , filecheck = Check {avoids = [], wants = ["something that isn't there"]}
-                                                   }
-                                               ]
-                                }
-                            ]
-                   }
+                 , defV & field @"cmds" .~
+                   [ emptyCmd & field @"postchecks" .~
+                       [ FileCheck
+                           { filename = filename $ out emptyCmd
+                           , filecheck = Check
+                             { avoids = []
+                             , wants = ["something that isn't there"]
+                             }
+                           }
+                       ]
+                   ]
                  )
                , ( "failure-pattern-avoid"
-                 , defV
-                   { cmds = [ (echo "toavoid")
-                                { out = (out emptyCmd)
-                                    { filecheck = ["toavoid"]
-                                    }
-                                }
-                            ]
-                   }
+                 , defV & field @"cmds" .~
+                   [ echo "toavoid" &
+                       field @"out" .
+                       field @"filecheck" .~
+                       ["toavoid"]
+                   ]
                  )
                ]
   }
@@ -254,7 +256,7 @@ examples = Examples
         { name = CommandName "echo"
         , args = [Arg f]
         , postchecks = [ FileCheck
-                           { filename = (filename $ out emptyCmd)
+                           { filename = filename $ out emptyCmd
                            , filecheck = Check
                              { avoids = []
                              , wants = [Pattern f]
