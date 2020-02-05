@@ -100,7 +100,8 @@ runWorkDir = do
   liftIO $ SD.createDirectoryIfMissing False wd
 
 runChecks :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
-runChecks =
+runChecks = do
+  (WorkDir wd) <- workdir <$> ask
   (cmds <$> ask) >>= \case
     [] -> pu "no processes"
     l -> do
@@ -110,7 +111,7 @@ runChecks =
           mconcat
             (intersperse " " (toS <$> args))
         for_ postchecks $ \FileCheck {..} -> do
-          contents <- liftIO $ readFile (toS filename)
+          contents <- liftIO $ readFile (toS wd <> "/" <> toS filename)
           forM_ (wants filecheck) $ \(Pattern x) ->
             unless
               (T.isInfixOf x contents)
