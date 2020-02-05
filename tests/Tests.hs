@@ -20,6 +20,7 @@ import Generic.Random
 import Protolude hiding
   ( (<.>)
   )
+import System.Directory
 import System.FilePath
 import Test.Tasty hiding
   ( Timeout
@@ -84,7 +85,7 @@ testExample :: ([Text] -> Bool) -> (Text, Cfg) -> TestTree
 testExample assertion (name, cfg) =
   testCase (toS name)
     ( do
-      out <- runDhrun (cfg {verbosity = Normal})
+      out <- runDhrun (cfg {verbosity = Normal, workdir = WorkDir $ "_test-output/" <> name})
       assertBool (show out) (assertion out)
     )
 
@@ -108,6 +109,8 @@ goldenLoad fn =
 
 main :: IO ()
 main = do
+  removeDirectoryRecursive "_test-output"
+  createDirectoryIfMissing True ("_test-output")
   goldenTestsSuccess <-
     testGroup "Golden tests for success files" <$>
       ( findByExtension [".yaml"] "resources/examples-successes" <&>

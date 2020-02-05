@@ -28,9 +28,9 @@ cmds:
   vars: []
   out:
     filecheck:
-      wants:
-      - something that isn't there
-      avoids: []
+      wants: []
+      avoids:
+      - toavoid
     filename: out.out
 cleaning: Keep
 workdir: ./

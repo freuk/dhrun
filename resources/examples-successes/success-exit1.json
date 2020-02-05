@@ -7,7 +7,7 @@
             "otherwd": null,
             "args": [
                 "-c",
-                "exit 5"
+                "exit 1"
             ],
             "postchecks": [],
             "passvars": [

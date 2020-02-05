@@ -235,8 +235,8 @@ examples = Examples
                    { cmds = [ (echo "toavoid")
                                 { out = (out emptyCmd)
                                     { filecheck = Check
-                                        { avoids = []
-                                        , wants = ["something that isn't there"]
+                                        { avoids = ["toavoid"]
+                                        , wants = []
                                         }
                                     }
                                 }
@@ -250,7 +250,7 @@ examples = Examples
     exitWithCode i =
       emptyCmd
         { name = CommandName "bash"
-        , args = [Arg "-c", Arg "exit 5"]
+        , args = [Arg "-c", Arg $ "exit " <> show i]
         , exitcode = Just (ExitFailure i)
         }
     echo f =

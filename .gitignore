@@ -15,3 +15,4 @@ _output
 .direnv
 .ghc.*
 .build
+_*

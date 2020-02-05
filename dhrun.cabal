@@ -154,6 +154,7 @@ test-suite Tests
         protolude -any,
         dhall -any,
         yaml -any,
+        directory -any,
         aeson -any,
         filepath -any,
         mtl -any,

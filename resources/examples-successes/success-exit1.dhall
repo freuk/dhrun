@@ -17,7 +17,7 @@
             { _1 = +1 }
           )
       , args =
-          [ "-c", "exit 5" ] : List Text
+          [ "-c", "exit 1" ] : List Text
       , vars =
           [] : List { varname : Text, value : Text }
       , passvars =

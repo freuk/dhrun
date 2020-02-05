@@ -23,11 +23,7 @@
           { filename =
               "out.out"
           , filecheck =
-              { avoids =
-                  [] : List Text
-              , wants =
-                  [ "something that isn't there" ] : List Text
-              }
+              { avoids = [ "toavoid" ] : List Text, wants = [] : List Text }
           }
       , err =
           { filename =

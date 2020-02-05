@@ -290,6 +290,7 @@ in    prelude.defaults.Package
                         , deps.protolude
                         , deps.dhall
                         , deps.yaml
+                        , deps.directory
                         , deps.aeson
                         , deps.filepath
                         , deps.mtl

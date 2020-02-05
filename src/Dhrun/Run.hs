@@ -24,6 +24,7 @@ import Control.Monad.Writer
   )
 import Data.Conduit (ConduitT)
 import qualified Data.Conduit.Binary as CB
+import System.Directory
 import qualified Data.Conduit.Process.Typed as PT
 import Data.Map as DM
 import qualified Data.Text as T (isInfixOf)
