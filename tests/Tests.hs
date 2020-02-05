@@ -33,6 +33,10 @@ instance Arbitrary (FileCheck Check) where
 
   arbitrary = genericArbitraryU
 
+instance Arbitrary (FileCheck [Text]) where
+
+  arbitrary = genericArbitraryU
+
 instance Arbitrary FileName where
 
   arbitrary = genericArbitraryU
@@ -148,7 +152,7 @@ qcProps :: TestTree
 qcProps =
   testGroup
     "QuickCheck specs"
-    [ QC.testProperty "concludeCmd fail/success patterns" $ \cmdresult -> shouldConclude cmdresult (concludeCmd True cmdresult)
+    [ QC.testProperty "concludeCmd fail/success patterns" $ \cmdresult -> shouldConclude cmdresult (concludeCmd  cmdresult)
     ]
   where
     shouldConclude :: CmdResult -> Either a b -> Bool

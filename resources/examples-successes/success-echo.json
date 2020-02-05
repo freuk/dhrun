@@ -8,28 +8,30 @@
             "args": [
                 "arbitrary-character-string"
             ],
-            "postchecks": [],
+            "postchecks": [
+                {
+                    "filecheck": {
+                        "wants": [
+                            "arbitrary-character-string"
+                        ],
+                        "avoids": []
+                    },
+                    "filename": "out.out"
+                }
+            ],
             "passvars": [
                 "PATH"
             ],
             "name": "echo",
             "err": {
-                "filecheck": {
-                    "wants": [],
-                    "avoids": []
-                },
+                "filecheck": [],
                 "filename": "err.err"
             },
             "exitcode": "ExitSuccess",
             "timeout": null,
             "vars": [],
             "out": {
-                "filecheck": {
-                    "wants": [
-                        "arbitrary-character-string"
-                    ],
-                    "avoids": []
-                },
+                "filecheck": [],
                 "filename": "out.out"
             }
         }

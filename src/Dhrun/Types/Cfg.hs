@@ -161,8 +161,8 @@ data Cmd
       , args :: [Arg]
       , vars :: [EnvVar]
       , passvars :: [VarName]
-      , out :: FileCheck Check
-      , err :: FileCheck Check
+      , out :: FileCheck [Text]
+      , err :: FileCheck [Text]
       , postchecks :: [FileCheck Check]
       , timeout :: Maybe Int
       , otherwd :: Maybe WorkDir
@@ -220,12 +220,11 @@ examples = Examples
   , failures = [ ( "failure-pattern-miss"
                  , defV
                    { cmds = [ emptyCmd
-                                { out = (out emptyCmd)
-                                    { filecheck = Check
-                                        { avoids = []
-                                        , wants = ["something that isn't there"]
-                                        }
-                                    }
+                                { postchecks = [ FileCheck
+                                                   { filename = (filename $ out emptyCmd)
+                                                   , filecheck = Check {avoids = [], wants = ["something that isn't there"]}
+                                                   }
+                                               ]
                                 }
                             ]
                    }
@@ -234,10 +233,7 @@ examples = Examples
                  , defV
                    { cmds = [ (echo "toavoid")
                                 { out = (out emptyCmd)
-                                    { filecheck = Check
-                                        { avoids = ["toavoid"]
-                                        , wants = []
-                                        }
+                                    { filecheck = ["toavoid"]
                                     }
                                 }
                             ]
@@ -257,19 +253,18 @@ examples = Examples
       emptyCmd
         { name = CommandName "echo"
         , args = [Arg f]
-        , out = (out emptyCmd)
-          { filecheck = Check
-              { avoids = []
-              , wants = [Pattern f]
-              }
-          }
+        , postchecks = [ FileCheck
+                           { filename = (filename $ out emptyCmd)
+                           , filecheck = Check
+                             { avoids = []
+                             , wants = [Pattern f]
+                             }
+                           }
+                       ]
         }
     emptyCheck fn = FileCheck
       { filename = FileName fn
-      , filecheck = Check
-        { avoids = []
-        , wants = []
-        }
+      , filecheck = []
       }
     emptyCmd = Cmd
       { name = CommandName "echo"

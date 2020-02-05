@@ -24,7 +24,6 @@ import Control.Monad.Writer
   )
 import Data.Conduit (ConduitT)
 import qualified Data.Conduit.Binary as CB
-import System.Directory
 import qualified Data.Conduit.Process.Typed as PT
 import Data.Map as DM
 import qualified Data.Text as T (isInfixOf)
@@ -149,7 +148,7 @@ runAsyncs =
       pu "async step: started processes"
       liftIO (waitAnyCancel asyncs) <&>
         snd <&>
-        concludeCmd (any noWants l) >>=
+        concludeCmd >>=
         either tell (const $ return ())
       pu "async step: done"
   where
@@ -183,7 +182,8 @@ runMultipleV getter desc =
             " command." <>
             x
 
--- | Runs a single command. should be the only 'complex' function in this codebaseaside from runAsyncs. TODO: add the exitcode check functionality.
+-- | Runs a single command. should be the only 'complex'
+-- function in this codebase aside from runAsyncs.
 runCmd :: [(Text, Text)] -> WorkDir -> Cmd -> IO CmdResult
 runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
   realWD <- SD.makeAbsolute (toS wd)
@@ -223,7 +223,8 @@ runCmd fullExternEnv (WorkDir wd) c@Cmd {..} = do
     logic :: Sink -> Sink -> P -> IO CmdResult
     logic sout serr p =
       finalizeCmd c <$>
-        with2 (withAsync $ monitor (filecheck out) (PT.getStdout p) sout)
+        with2
+          (withAsync $ monitor (filecheck out) (PT.getStdout p) sout)
           (withAsync $ monitor (filecheck err) (PT.getStderr p) serr)
           waitEitherCatchCancel <*>
         ( PT.getExitCode p >>= \case

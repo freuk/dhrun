@@ -15,10 +15,7 @@
             ],
             "name": "bash",
             "err": {
-                "filecheck": {
-                    "wants": [],
-                    "avoids": []
-                },
+                "filecheck": [],
                 "filename": "err.err"
             },
             "exitcode": {
@@ -27,10 +24,7 @@
             "timeout": null,
             "vars": [],
             "out": {
-                "filecheck": {
-                    "wants": [],
-                    "avoids": []
-                },
+                "filecheck": [],
                 "filename": "out.out"
             }
         }

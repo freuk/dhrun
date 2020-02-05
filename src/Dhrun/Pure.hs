@@ -17,7 +17,6 @@ module Dhrun.Pure
   , finalizeCmd
   , getWdFilename
   , stdToS
-  , noWants
   , with3
   , with2
   , mapTuple
@@ -52,6 +51,7 @@ data CmdResult
   | FoundAll Cmd
   | FoundIllegal Cmd Text Std
   | OutputLacking Cmd Std
+  | SomeOutputLacking Cmd
   | ConduitException Cmd Std
   deriving (Show, Generic)
 
@@ -69,27 +69,25 @@ data Std = Out | Err
 
 -- | concludeCmd hadNoWants cmdresult returns dhrun's conclusion based on whether
 -- there were any "wants" in the template.
-concludeCmd :: Bool -> CmdResult -> Either [Text] Text
-concludeCmd True (DiedLegal _) = Right "All commands exited successfully."
-concludeCmd False (DiedLegal c) =
-  Left
-    [ "command exited:" <>
-        mconcat (intersperse "\n" (T.lines (show c)))
-    ]
-concludeCmd _ (Timeout c) =
+concludeCmd :: CmdResult -> Either [Text] Text
+concludeCmd (DiedLegal c) =
+  Right $ 
+    "command exited:" <>
+    mconcat (intersperse "\n" (T.lines (show c)))
+concludeCmd (Timeout c) =
   Left $ "The following command timed out:" : T.lines (show c)
-concludeCmd _ (DiedFailure c n) =
+concludeCmd (DiedFailure c n) =
   Left $
     "The following command died with exit code " <>
     show n <>
     " :" :
     T.lines (show c)
-concludeCmd _ (FoundAll c) =
+concludeCmd (FoundAll c) =
   Right
     ( "All searched patterns in the following command were found. Killing all processes.\n " <>
       mconcat (intersperse "\n" (T.lines (show c)))
     )
-concludeCmd _ (FoundIllegal c t e) =
+concludeCmd (FoundIllegal c t e) =
   Left $
     "The illegal pattern " <>
     t <>
@@ -97,33 +95,34 @@ concludeCmd _ (FoundIllegal c t e) =
     stdToS e <>
     ":" :
     T.lines (show c)
-concludeCmd _ (OutputLacking c e) =
+concludeCmd (SomeOutputLacking c) =
+  Left $
+    "This process was found to be lacking pattern(s):" :
+    T.lines (show c)
+concludeCmd (OutputLacking c e) =
   Left $
     "This process' " <>
     stdToS e <>
     " was found to be lacking pattern(s):" :
     T.lines (show c)
-concludeCmd _ (ConduitException c e) =
+concludeCmd (ConduitException c e) =
   Left $ "This process ended with a conduit exception:" <> stdToS e :
     T.lines
       (show c)
-concludeCmd _ (ThrewException c e) =
+concludeCmd (ThrewException c e) =
   Left $ "This process' execution ended with an exception: " <> e :
     T.lines
       (show c)
-concludeCmd _ (DiedUnExpected c n) =
+concludeCmd (DiedUnExpected c n) =
   Left $ "process exited with inadequate exit code " <> show n <> ": " :
     T.lines
       (show c)
-concludeCmd _ (DiedExpected c) =
+concludeCmd (DiedExpected c) =
   Right $ "process exited with adequate exit code " <> ": " <> show c
 
 stdToS :: Std -> Text
 stdToS Out = "stdout"
 stdToS Err = "stderr"
-
-noWants :: Cmd -> Bool
-noWants Cmd {..} = null (wants $ filecheck out) && null (wants $ filecheck err)
 
 envVars :: [EnvVar] -> [VarName] -> [(Text, Text)] -> [(Text, Text)]
 envVars internEnv passVars externEnv =
@@ -153,10 +152,12 @@ finalizeCmd
   -> ProcessWas
   -> CmdResult
 finalizeCmd c _ (Died ec) = case exitcode c of
-  Nothing -> DiedLegal c
+  Nothing -> trace ("toto" <> show c :: Text) $ DiedLegal c
   Just ecExpect ->
-    if ecExpect == ec then DiedExpected c else DiedUnExpected c ec
-finalizeCmd c ei _ = rightFinalizer ei
+    if ecExpect == ec
+    then DiedExpected c
+    else DiedUnExpected c ec
+finalizeCmd c ei Killed = rightFinalizer ei
   where
     rightFinalizer (Left (Right ())) = legalOrLacking Out
     rightFinalizer (Right (Right ())) = legalOrLacking Err
@@ -166,7 +167,7 @@ finalizeCmd c ei _ = rightFinalizer ei
       Just (ThrowFoundAnAvoid t) -> FoundIllegal c t r
       Just ThrowFoundAllWants -> FoundAll c
       Nothing -> ConduitException c r
-    legalOrLacking r = if noWants c then DiedLegal c else OutputLacking c r
+    legalOrLacking r = DiedLegal c
 
 with3
   :: ((t1 -> t2) -> t3)

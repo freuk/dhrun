@@ -20,18 +20,14 @@ cmds:
   - PATH
   name: bash
   err:
-    filecheck:
-      wants: []
-      avoids: []
+    filecheck: []
     filename: err.err
   exitcode:
     _1: 5
   timeout: null
   vars: []
   out:
-    filecheck:
-      wants: []
-      avoids: []
+    filecheck: []
     filename: out.out
 cleaning: Keep
 workdir: ./

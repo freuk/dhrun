@@ -23,17 +23,9 @@
       , passvars =
           [ "PATH" ] : List Text
       , out =
-          { filename =
-              "out.out"
-          , filecheck =
-              { avoids = [] : List Text, wants = [] : List Text }
-          }
+          { filename = "out.out", filecheck = [] : List Text }
       , err =
-          { filename =
-              "err.err"
-          , filecheck =
-              { avoids = [] : List Text, wants = [] : List Text }
-          }
+          { filename = "err.err", filecheck = [] : List Text }
       , postchecks =
           [] : List
                { filename :
@@ -58,17 +50,9 @@
         , passvars :
             List Text
         , out :
-            { filename :
-                Text
-            , filecheck :
-                { avoids : List Text, wants : List Text }
-            }
+            { filename : Text, filecheck : List Text }
         , err :
-            { filename :
-                Text
-            , filecheck :
-                { avoids : List Text, wants : List Text }
-            }
+            { filename : Text, filecheck : List Text }
         , postchecks :
             List
             { filename :

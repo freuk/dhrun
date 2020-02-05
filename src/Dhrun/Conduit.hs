@@ -41,7 +41,6 @@ import qualified Data.Conduit.Process.Typed as PT
   )
 import Data.Time.Clock.POSIX
 import Dhrun.Pure
-import Dhrun.Types.Cfg
 import Protolude
 
 type Source = ConduitT () ByteString IO ()
@@ -54,7 +53,7 @@ type PC = PT.ProcessConfig () Source Source
 
 -- | output monitoring conduit. THROWS PatternMatched - with a one second wait to
 monitor
-  :: Check
+  :: [Text]
   -> ConduitT () ByteString IO ()
   -> ConduitT ByteString Void IO ()
   -> IO ()
@@ -81,33 +80,21 @@ data Matched
 -- | makeBehavior builds an IO conduit that throws a PatternMatched when
 -- all wanted pattern or one avoided pattern are found
 makeBehavior
-  :: (MonadIO m, MonadState MonitoringState m, MonadReader Check m)
+  :: (MonadIO m, MonadState MonitoringState m, MonadReader [Text] m)
   => ConduitT ByteString ByteString m ()
-makeBehavior =
-  wants <$> ask >>= \case
-    [] -> cleanLooper
-    as -> expectfulLooper $ toS <$> as
-
-expectfulLooper
-  :: (MonadIO m, MonadState MonitoringState m, MonadReader Check m)
-  => [ByteString]
-  -> ConduitT ByteString ByteString m ()
-expectfulLooper [] = throw ThrowFoundAllWants
-expectfulLooper l =
-  noAvoidsAndOtherwise $ \b ->
-    yield b >> expectfulLooper (filter (not . flip B.isInfixOf b) (toS <$> l))
+makeBehavior = cleanLooper
 
 cleanLooper
-  :: (MonadIO m, MonadState MonitoringState m, MonadReader Check m)
+  :: (MonadIO m, MonadState MonitoringState m, MonadReader [Text] m)
   => ConduitT ByteString ByteString m ()
 cleanLooper = noAvoidsAndOtherwise $ \b -> yield b >> cleanLooper
 
 noAvoidsAndOtherwise
-  :: (MonadIO m, MonadState MonitoringState m, MonadReader Check m)
+  :: (MonadIO m, MonadState MonitoringState m, MonadReader [Text] m)
   => (ByteString -> ConduitT ByteString ByteString m ())
   -> ConduitT ByteString ByteString m ()
 noAvoidsAndOtherwise otherwiseConduit = do
-  av <- avoids <$> ask
+  av <- ask
   t <- liftIO getPOSIXTime
   get >>= \case
     Just m -> goThrow t m

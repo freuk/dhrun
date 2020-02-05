@@ -13,23 +13,23 @@ verbosity: Verbose
 cmds:
 - otherwd: null
   args: []
-  postchecks: []
+  postchecks:
+  - filecheck:
+      wants:
+      - something that isn't there
+      avoids: []
+    filename: out.out
   passvars:
   - PATH
   name: echo
   err:
-    filecheck:
-      wants: []
-      avoids: []
+    filecheck: []
     filename: err.err
   exitcode: ExitSuccess
   timeout: null
   vars: []
   out:
-    filecheck:
-      wants:
-      - something that isn't there
-      avoids: []
+    filecheck: []
     filename: out.out
 cleaning: Keep
 workdir: ./
