@@ -10,7 +10,7 @@ Maintainer  : fre@freux.fr
 module Dhrun.Bin
   ( cli
   , codegen
-  , SourceType(..)
+  , SourceType (..)
   , processType
   )
 where
@@ -44,7 +44,7 @@ import qualified System.IO as SIO
 
 cli :: IO ()
 cli =
-  parseDhrunCli >>= runDhrun
+  parseDhrunCli >>= runDhrun >>= liftIO . printResult
 
 codegen :: IO ()
 codegen = do

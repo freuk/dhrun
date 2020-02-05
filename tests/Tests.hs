@@ -13,8 +13,8 @@ where
 
 import Data.Text.Arbitrary
 import Dhrun.Bin
-import Dhrun.Run
 import Dhrun.Pure
+import Dhrun.Run
 import Dhrun.Types.Cfg
 import Generic.Random
 import Protolude hiding
@@ -80,9 +80,13 @@ instance Arbitrary CmdResult where
 
   arbitrary = genericArbitraryU
 
-testExample :: (Text, Cfg) -> TestTree
-testExample (name, cfg) =
-  testCase (toS name) (runDhrun cfg)
+testExample :: ([Text] -> Bool) -> (Text, Cfg) -> TestTree
+testExample assertion (name, cfg) =
+  testCase (toS name)
+    ( do
+      out <- runDhrun (cfg {verbosity = Normal})
+      assertBool (show out) (assertion out)
+    )
 
 goldenLoad :: FilePath -> TestTree
 goldenLoad fn =
@@ -114,14 +118,16 @@ main = do
       ( findByExtension [".yaml"] "resources/examples-failures" <&>
         fmap (goldenLoad . toS . dropExtension)
       )
-  let tf = testGroup "failures" (testExample <$> (successes examples))
   defaultMain $
     testGroup "Tests"
       [ unitTests
       , goldenTestsSuccess
       , goldenTestsFailure
       , qcProps
-      ,tf
+      , testGroup "successes"
+        (testExample (\out -> out == []) <$> (successes examples))
+      , testGroup "failures"
+        (testExample (\out -> out /= []) <$> (failures examples))
       ]
 
 unitTests :: TestTree

@@ -9,6 +9,7 @@ Maintainer  : fre@freux.fr
 -}
 module Dhrun.Run
   ( runDhrun
+  , printResult
   )
 where
 
@@ -56,17 +57,20 @@ putC content color = setC color *> putT content *> setC White
     putT = putStr
 
 -- | runDhrun d runs a dhrun specification in the lifted IO monad.
-runDhrun :: (MonadIO m) => Cfg -> m ()
+runDhrun :: (MonadIO m) => Cfg -> m [Text]
 runDhrun dhallExec =
-  runWriterT (runReaderT runAllSteps dhallExec) <&> snd >>= liftIO . \case
-    [] ->
-      putC "Success. " Green <>
-        putText "No errors were encountered and all requirements were met."
-    errors ->
-      putText "Error log:" <>
-        for_ errors Protolude.putText <>
-        putC "Failure. " Red <>
-        die "exiting."
+  runWriterT (runReaderT runAllSteps dhallExec) <&> snd
+
+printResult :: [Text] -> IO ()
+printResult = \case
+  [] ->
+    putC "Success. " Green <>
+      putText "No errors were encountered and all requirements were met."
+  errors ->
+    putText "Error log:" <>
+      for_ errors Protolude.putText <>
+      putC "Failure. " Red <>
+      die "exiting."
 
 runAllSteps :: (MonadIO m, MonadReader Cfg m, MonadWriter [Text] m) => m ()
 runAllSteps = do
@@ -145,7 +149,7 @@ runAsyncs =
       liftIO (waitAnyCancel asyncs) <&>
         snd <&>
         concludeCmd (any noWants l) >>=
-        either tell putText
+        either tell (const $ return ())
       pu "async step: done"
   where
     pu t = putV $ "async step:" <> t
