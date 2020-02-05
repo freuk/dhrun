@@ -113,6 +113,7 @@ goldenLoad fn =
 
 main :: IO ()
 main = do
+  createDirectoryIfMissing True ("_test-output")
   removeDirectoryRecursive "_test-output"
   createDirectoryIfMissing True ("_test-output")
   goldenTestsSuccess <-
