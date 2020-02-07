@@ -1,31 +1,32 @@
-##### `dhrun`: [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/) configurable concurrent process executor with streaming assertions.
+##### `dhrun`: [Dhall](https://dhall-lang.org/)/[YAML](https://yaml.org/)/JSON configurable concurrent process executor with streaming assertions.
 
-`dhrun` starts a list of (Unix) processes, monitors the standard streams
-for patterns that should be expected or avoided, kills the processes
-when criteria are met and exits accordingly. It is configured using
-either [Dhall](https://dhall-lang.org/) or [YAML](https://yaml.org/).
-Its goals are similar to [venom](https://github.com/ovh/venom). Compared
-to that tool, `dhrun` has only one execution capability(exec) and its
-assertions are poor(infix strings only). It supports concurrency and
-monitors streams, however. It was written to create a configuration
-layer to control single-node integration tests for a linux daemon.
+`dhrun` starts a list of (Unix) processes, monitors the standard streams for
+patterns that should be expected or avoided, kills the processes when criteria
+are met and exits accordingly. It is configured using either
+[Dhall](https://dhall-lang.org/), YAML or JSON.  Its goals are similar to
+[venom](https://github.com/ovh/venom). Compared to that tool, `dhrun` has only
+one execution capability(exec) and its assertions are poor(infix strings only).
+It supports concurrency and monitors streams, however. It was written to create
+a configuration layer to control integration tests where multiple processes have
+to interact.
 
 ##### Use
 
 ``` {.bash}
-dhrun run path/to/config.dhall 
-dhrun run path/to/config.yaml
+dhrun path/to/config.dhall 
+dhrun path/to/config.yaml
+dhrun path/to/config.json
 ```
 
  The [resources](./resources) directory contains the Dhall types for the
  configuration layer, and the [examples](./examples/) directory contains more
- `.yml` and `.dh` configurations.
+ `.yaml` and `.dh` configurations.
 
 The originally intended workflow is to configure dhrun using a dhall
 codebase. In bash, this might involve a here-document:
 
 ``` {.bash}
-dhrun run <<< "let codebase = /path/package.dhall in codebase.foo bar baz"
+dhrun -i <<< "let codebase = /path/package.dhall in codebase.foo bar baz"
 ```
 
 You can find an example project-specific dhall configuration layer
@@ -54,19 +55,22 @@ Available commands:
 ```
 
 ``` {.bash}
-dhrun run --help
+dhrun --help
 ```
 
 ``` {.txt}
-Usage: dhrun run [INPUT] [-y|--yaml] [-v|--verbose] [-e|--edit]
-  Run a dhrun specification.
+dhrun
+
+Usage: dhrun [-i|--stdin] [CONFIG] [-y|--yaml]
+  Dhrun
 
 Available options:
-  INPUT                    Input configuration with .yml/.yaml/.dh/.dhall
+  -h,--help                Show this help text
+  -i,--stdin               Read configuration on stdin.
+  CONFIG                   Input configuration with .yml/.yaml/.dh/.dhall
                            extension. Leave void for stdin (dhall) input.
-  -y,--yaml                Assume stdin to be yaml instead of dhall.
-  -v,--verbose             Enable verbose mode.
-  -e,--edit                Edit yaml in $EDITOR before run.
+  -y,--yaml                Assume configuration to be yaml(json is valid yaml)
+                           instead of dhall.
   -h,--help                Show this help text
 ```
 
@@ -80,18 +84,6 @@ Available options:
 This pins nixpkgs 18.09. Building should take a minute or two and will
 definitely succeed. You can also try installing the bleeding edge
 version: `nix-env -f https://github.com/freuk/dhrun.git -iA dhrun`
-
-I have not tried building this code using stack or any other tool, but
-here are the hackage dependencies for `dhrun` and its tests:
-
-`base` `ansi-terminal` `time` `protolude` `mtl` `bytestring` `process`
-`conduit` `unliftio-core` `containers` `conduit-extra` `unix` `yaml`
-`aeson` `text` `directory` `dhall` `base` `protolude` `directory`
-`bytestring` `editor-open` `dhrun-lib` `filepath` `optparse-applicative`
-`dhall` `base` `protolude` `dhall` `yaml` `aeson` `filepath` `mtl`
-`bytestring` `text` `unliftio` `tasty` `tasty-hunit` `tasty-golden`
-`tasty-hspec` `tasty-quickcheck` `generic-random` `quickcheck-text`
-`hspec` `dhrun-lib` `Glob`
 
 ##### Hacking
 
